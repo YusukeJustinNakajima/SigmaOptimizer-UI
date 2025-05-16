@@ -50,6 +50,7 @@ node_modules/
 *.evtx
 *.ps1~
 powershell/hayabusa.exe
+powershell/rules/generate_rules/*
 
 # PowerShell result artifacts
 powershell/final_log.txt

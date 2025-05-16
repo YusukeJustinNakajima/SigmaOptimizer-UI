@@ -13,15 +13,12 @@ logsource:
     product: windows
     category: process_creation
 detection:
-    selection_suspicious_cmd:
-        CommandLine|contains:
-            - 'http'
     selection_encoding_cmd:
         OriginalFileName|contains: 'certutil.exe'
         CommandLine|contains:
             - '/encode'
             - '/decode'
-    condition: selection_suspicious_cmd or selection_encoding_cmd
+    condition: selection_encoding_cmd
 falsepositives:
     - Legitimate administrative tasks involving certificate management, file decoding, or encoding using certutil.exe.
 level: high
