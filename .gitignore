@@ -53,5 +53,6 @@ powershell/hayabusa.exe
 
 # PowerShell result artifacts
 powershell/final_log.txt
-powershell/detection_result.txt
+powershell/detection_result.csv
+powershell/fp_check_result.csv
 public/logs/final_log.txt
