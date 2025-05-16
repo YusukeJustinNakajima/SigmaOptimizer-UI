@@ -1,36 +1,32 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SigmaOptimizer-UI <br> ~ Automated Sigma Rule Generation and Optimization ~  
 
-## Getting Started
+## 🎯 Overview  
+**SigmaOptimizer-UI** is a user-friendly interface built on top of [SigmaOptimizer](https://github.com/YusukeJustinNakajima/SigmaOptimizer), designed to make end-to-end Sigma rule generation and optimization more accessible and intuitive.
+By combining log analysis, rule evaluation, and iterative refinement powered by LLM, it streamlines the entire workflow—enabling seamless creation, testing, and tuning of Sigma rules without the need to directly interact with PowerShell scripts.
 
-First, run the development server:
+✅ **Automated Sigma rule generation based on real-world logs**  
+✅ **Integration with [MITRE Caldera](https://github.com/mitre/caldera) (β version)**  
+✅ **Rule validation with syntax checks (Invoke-SigmaRuleTests)**  
+✅ **Detection rate measurement using [Hayabusa](https://github.com/Yamato-Security/hayabusa)**  
+✅ **FP check of created rules using [evtx-baseline](https://github.com/NextronSystems/evtx-baseline)**  
+✅ **Command obfuscation support ([Invoke-ArgFuscator](https://github.com/wietze/Invoke-ArgFuscator)) for robust detection**  
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+![image](https://github.com/user-attachments/assets/31d28e55-0a13-4e21-b118-1ace3215e6af)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🚀 Usage  
+### 🔧 Prerequisites   
+- **Windows environment** 
+- **Run `AutoSetup.ps1` to automate the entire setup process. This script handles all the necessary preparations seamlessly. Before executing the script, update the `OPENAI_APIKEY` section in `AutoSetup.ps1` with your own API key.**
+    - Installing Required PowerShell Modules
+        - `Pester` (for running tests)  
+        - `powershell-yaml` (for parsing YAML files)  
+        - `Invoke-ArgFuscator` (for command obfuscation) 
+    - Downloading and Setting Up Hayabusa
+        - The script automatically downloads the latest Hayabusa release from GitHub.
+    - Extracting the Archive
+        - The script ensures the benign_evtx_logs/win10-client.tgz file is extracted
+        - The default setting only checks false positives (FP) using the normal logs obtained in a **Windows 10 client environment.**
+        - If needed, add your own logs according to your environment(or use [evtx-baseline](https://github.com/NextronSystems/evtx-baseline))
+- **Recommended to configure the following two log sources to create better sigma rules:**
+    - Microsoft-Windows-Sysmon/Operational -> Sysmon installation
+    - Security EventID:4688 -> https://learn.microsoft.com/ja-jp/windows-server/identity/ad-ds/manage/component-updates/command-line-process-auditing
