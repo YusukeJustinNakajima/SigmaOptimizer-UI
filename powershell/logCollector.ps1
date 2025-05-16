@@ -174,10 +174,6 @@ else {
 
                 foreach ($event in $events) {
                     $xml = $event.ToXml()
-                    # Exclude logs containing "powershell" in cmd environment
-                    if ($Mode -eq "cmd" -and $xml.ToLower() -match "powershell") {
-                        continue
-                    }
 
                     # Limit PowerShell logs to a maximum of 5
                     if ($logName -match "powershell") {
