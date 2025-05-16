@@ -19,7 +19,11 @@ $tarExtractPath = "benign_evtx_logs/"
 foreach ($module in $requiredModules) {
     if (-not (Get-Module -ListAvailable -Name $module)) {
         Write-Output "Installing module: $module"
-        Install-Module -Name $module -Force -SkipPublisherCheck
+        if ($module -eq "Pester") {
+            Install-Module -Name "Pester" -RequiredVersion "5.7.1" -Force -AllowClobber -SkipPublisherCheck
+        } else {
+            Install-Module -Name $module -Force -SkipPublisherCheck
+        }
     } else {
         Write-Output "Module already installed: $module"
     }
