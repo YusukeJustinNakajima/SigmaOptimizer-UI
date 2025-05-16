@@ -1,0 +1,26 @@
+﻿title: Suspicious PowerShell WMI Enumeration
+id: 0daaf10a-5802-4679-bc5d-d418791e106d
+status: test
+description: >
+  Detects execution of PowerShell with ExecutionPolicy set to Bypass when used to run
+  a WMI query for Win32_UserAccount. Such command usage can be associated with reconnaissance
+  or lateral movement attempts.
+author: [your_name_here]
+date: 2025-05-13
+tags:
+  - attack.discovery
+  - attack.execution
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    OriginalFileName: "PowerShell.EXE"
+    CommandLine|contains:
+      - "-ExecutionPolicy Bypass"
+      - "Get-WmiObject"
+      - "Win32_UserAccount"
+  condition: selection
+falsepositives:
+  - Legitimate administrative use of PowerShell for inventory collection.
+level: medium

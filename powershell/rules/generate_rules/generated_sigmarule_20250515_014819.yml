@@ -1,0 +1,26 @@
+﻿title: Suspicious Certutil Network Retrieval
+id: c3992551-12ea-4f0d-a0a9-87d2311dd6b1
+status: test
+description: >
+  Detects possible malicious use of certutil to retrieve remote files.
+  This rule looks for process creation events where the tool identified by its OriginalFileName is "certutil.exe" and the CommandLine contains a remote URL pattern (http or https).
+  Attackers often use certutil to download or exfiltrate files, and while legitimate uses exist, this behavior should be further investigated.
+author: [your_name_here]
+date: 2025-05-15
+tags:
+  - attack.exfiltration
+  - attack.t1005
+  - attack.defense_evasion
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_certutil:
+    OriginalFileName:
+      - 'certutil.exe'
+  selection_remote:
+    CommandLine|re: '(?i)https?:\/\/'
+  condition: selection_certutil and selection_remote
+falsepositives:
+  - Legitimate use of certutil in automated scripts or system updates for downloading files.
+level: high

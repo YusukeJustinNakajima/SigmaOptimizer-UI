@@ -1,0 +1,27 @@
+title: Suspicious cmd.exe Usage for Unauthorized User Enumeration
+id: ea5cecbb-740f-45ac-8989-a43296b85123
+status: test
+description: >
+  Detects execution of a command shell (cmd.exe) with arguments containing both "net user" and "/domain".
+  Such a pattern can be used by adversaries to enumerate domain user accounts for reconnaissance or escalation purposes.
+  The rule excludes processes running from common system directories to help reduce false positives.
+author: [your_name_here]
+date: 2025-05-16
+tags:
+  - attack.discovery
+  - attack.execution
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    CommandLine|contains:
+      - "http"
+  filter:
+    CurrentDirectory|startswith:
+      - "C:\\Windows"
+      - "C:\\Program Files"
+  condition: selection and not filter
+falsepositives:
+  - Legitimate administrative or troubleshooting activities using cmd.exe with net user commands in standard system directories.
+level: medium

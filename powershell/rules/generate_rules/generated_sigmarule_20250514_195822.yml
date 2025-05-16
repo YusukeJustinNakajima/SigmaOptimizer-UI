@@ -1,0 +1,29 @@
+﻿title: Suspicious Base64 Encoded PowerShell Execution
+id: aa8ba15d-91ff-471f-957f-ec4646078a64
+status: test
+description: >
+  Detects the execution of PowerShell (or pwsh) with a base64 encoded command.
+  This behavior is commonly used by attackers to obfuscate malicious commands.
+references:
+  - https://attack.mitre.org/techniques/T1059/001/
+author: [your_name_here]
+date: 2025-05-14
+tags:
+  - attack.execution
+  - attack.obfuscation
+  - attack.t1059.001
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    EventID: 4688
+    OriginalFileName:
+      - "powershell.exe"
+      - "pwsh.exe"
+    CommandLine|re:
+      - "(?i)-(?:NoProfile\\s+)?(?:ExecutionPolicy\\s+\\w+\\s+)?(?:-EncodedCommand|-enc)\\b"
+  condition: selection
+falsepositives:
+  - Legitimate use of PowerShell for administrative automation or system management.
+level: high

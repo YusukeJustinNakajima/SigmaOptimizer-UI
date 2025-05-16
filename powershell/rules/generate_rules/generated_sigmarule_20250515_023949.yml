@@ -1,0 +1,26 @@
+﻿title: Suspicious "net user" Command Execution from Anomalous Directory  
+id: ec34448b-35ef-479a-92fe-fff4153eb562
+status: test  
+description: Detects when the "cmd.exe" executable is used with a "net user" command from a directory outside standard system locations, which may indicate malicious use for user enumeration or lateral movement.  
+author: [your_name_here]
+date: 2025-05-15
+tags:  
+  - attack.execution  
+  - attack.discovery  
+logsource:  
+  product: windows  
+  category: process_creation  
+detection:  
+  selection:  
+    OriginalFileName: "Cmd.exe"  
+    CommandLine|contains:  
+      - "net user"  
+      - "/domain"  
+  filter:  
+    CurrentDirectory|startswith:  
+      - "C:\\Windows"  
+      - "C:\\Program Files"  
+  condition: selection and not filter  
+falsepositives:  
+  - Legitimate administrative usage of net user commands from system directories  
+level: medium

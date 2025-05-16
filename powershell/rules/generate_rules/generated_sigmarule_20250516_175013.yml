@@ -1,0 +1,28 @@
+title: Suspicious Certutil Usage for File Download
+id: 5f890e16-707d-4831-be98-2a811a82d90b
+status: test
+description: >
+  Detects the execution of certutil.exe with command line arguments containing an HTTP(S) URL.
+  Such behavior is often observed when certutil is abused to download remote files for malicious purposes.
+references:
+  - https://lolbas-project.github.io/lolbas/Binaries/Certutil/
+author: [your_name_here]
+date: 2025-05-16
+tags:
+  - attack.exfiltration
+  - attack.defense_evasion
+  - abuse.certutil
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_certutil:
+    CommandLine|contains: "https"
+  filter_safe:
+    CurrentDirectory|startswith:
+      - "C:\\Windows"
+      - "C:\\Program Files"
+  condition: selection_certutil and not filter_safe
+falsepositives:
+  - Legitimate use of certutil for certificate operations or file retrieval from approved internal sources
+level: medium

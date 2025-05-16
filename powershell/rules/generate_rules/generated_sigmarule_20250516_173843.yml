@@ -1,0 +1,24 @@
+﻿title: Suspicious Use of CertUtil for Data Exfiltration  
+id: 56f790e3-9049-446a-af89-ef7f53056714
+status: test  
+description: "Detects potential misuse of certutil.exe to download remote data. This rule looks for process creation events where the OriginalFileName is certutil.exe and the CommandLine contains an HTTP/HTTPS URL, a common indicator of using certutil as a download or exfiltration utility."  
+references:  
+  - https://attack.mitre.org/techniques/T1218/  
+author: [your_name_here]
+date: 2025-05-16
+tags:  
+  - attack.exfiltration  
+  - attack.t1218  
+  - defense-evasion  
+logsource:  
+  product: windows  
+  category: process_creation  
+detection:  
+  selection_certutil:  
+    OriginalFileName: "certutil.exe"  
+    CommandLine|re:  
+      - "(?i)https?://"
+  condition: selection_certutil  
+falsepositives:  
+  - Legitimate use of certutil.exe for certificate management, base64 decoding, or other approved administrative tasks  
+level: medium

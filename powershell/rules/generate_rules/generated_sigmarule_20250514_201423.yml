@@ -1,0 +1,30 @@
+﻿title: Suspicious Cmd Execution with 'net user' from Uncommon Directory
+id: c8944e4a-1b69-448d-af96-8d7f4ae8ff28
+status: test
+description: >
+  Detects execution of a command-line using Cmd.Exe that contains "net user" and "/domain"
+  parameters when executed from a directory outside of standard system paths.
+references:
+  - https://attack.mitre.org/techniques/T1059/
+author: [your_name_here]
+date: 2025-05-14
+tags:
+  - attack.execution
+  - attack.privilege-escalation
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    OriginalFileName: "Cmd.Exe"
+    CommandLine|contains:
+      - "net user"
+      - "/domain"
+  filter:
+    CurrentDirectory|startswith:
+      - "C:\\Windows"
+      - "C:\\Program Files"
+  condition: selection and not filter
+falsepositives:
+  - Legitimate administrative activities executed from authorized system directories.
+level: medium

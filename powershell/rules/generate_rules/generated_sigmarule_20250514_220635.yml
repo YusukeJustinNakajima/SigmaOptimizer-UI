@@ -1,0 +1,26 @@
+﻿title: Suspicious 'net user' Command Execution in Uncommon Directory
+id: 5c81b25a-1648-4e69-8376-fe8cfd84d43a
+status: test
+description: >
+  Detects execution of Cmd.Exe with the "net user" command and "/domain" argument when the CurrentDirectory does not begin with common system paths.
+  Such a pattern may indicate lateral movement or credential harvesting attempts.
+author: [your_name_here]
+date: 2025-05-14
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    OriginalFileName: "Cmd.Exe"
+    CommandLine|contains:
+      - "net user"
+      - "/domain"
+  filter:
+    CurrentDirectory|startswith:
+      - "C:\\Windows"
+      - "C:\\Program Files"
+      - "C:\\Program Files (x86)"
+  condition: selection and not filter
+falsepositives:
+  - Legitimate use of net user commands from standard system directories during administrative or troubleshooting activities.
+level: medium

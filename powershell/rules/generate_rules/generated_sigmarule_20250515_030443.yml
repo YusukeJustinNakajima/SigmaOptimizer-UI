@@ -1,0 +1,28 @@
+﻿title: Suspicious Certutil Usage With Remote Resource Download
+id: 4444a714-4941-40e0-ab22-b3a3274df2d9
+status: test
+description: >
+  Detects execution of a process whose original filename is "certutil.exe" combined with command-line arguments containing an HTTP or HTTPS URL.
+  This pattern is known to be used in file download or exfiltration stages by adversaries leveraging LOLBins.
+references:
+  - https://attack.mitre.org/techniques/T1218/
+  - https://github.com/fox-it/pycertutil
+author: [your_name_here]
+date: 2025-05-15
+tags:
+  - attack.defense-evasion
+  - attack.exfiltration
+  - attack.t1218
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection_certutil:
+    OriginalFileName: certutil.exe
+  selection_url:
+    CommandLine|re:
+      - '(?i)https?://'
+  condition: selection_certutil and selection_url
+falsepositives:
+  - Legitimate administrative use of certutil for certificate or file management may trigger this rule.
+level: medium

@@ -1,0 +1,22 @@
+﻿title: Suspicious Certutil File Download
+id: e9ad35b5-af4d-4647-a205-1ff6e53b3bf2
+status: test
+description: Detects execution of certutil.exe with command-line arguments containing URL patterns, which may indicate malicious file download or exfiltration.
+author: [your_name_here]
+date: 2025-05-15
+tags:
+  - attack.execution
+  - attack.exfiltration
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    EventID: 4688
+    OriginalFileName|endswith:
+      - 'certutil.exe'
+    CommandLine|re: '(?i)https?://'
+  condition: selection
+falsepositives:
+  - Legitimate administrative use of certutil for certificate management or encoding/decoding operations
+level: medium

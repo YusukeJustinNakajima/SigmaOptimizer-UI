@@ -1,0 +1,24 @@
+﻿title: Detection of 'whoami /user' Command Execution with Obfuscation
+id: 756eda3c-7c40-4013-9170-b5345306eadb
+status: test
+description: >
+  Detects execution of the "whoami /user" command, including common obfuscation techniques, which can be used for user enumeration by attackers.
+author: [your_name_here]
+date: 2025-05-16
+tags:
+  - attack.execution
+  - attack.discovery
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    EventID: 4688
+    OriginalFileName: "whoami.exe"
+  selection_cmd:
+    CommandLine|re:
+      - '(?i)\\bwhoami\\b.*[/-]["'']?u["'']?s["'']?e["'']?r'
+  condition: selection and selection_cmd
+falsepositives:
+  - Legitimate administrative or troubleshooting use of "whoami /user"
+level: medium

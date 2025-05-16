@@ -1,0 +1,29 @@
+﻿title: Suspicious 'net user' Command Execution From Uncommon Directory  
+id: d6b328c4-7712-4f3a-ac8e-8ea9900b1f12
+status: test  
+description: |  
+  Detects execution of the "net user" command via a cmd.exe process running outside of standard system directories.  
+  Such activity can indicate an attempt at privilege escalation or user enumeration from a non-standard location.  
+author: [your_name_here]
+date: 2025-05-15
+tags:  
+  - attack.privilege-escalation  
+  - attack.discovery  
+logsource:  
+  product: windows  
+  category: process_creation  
+detection:  
+  selection:  
+    EventID: 4688  
+    OriginalFileName: "Cmd.Exe"  
+    CommandLine|contains:  
+      - "net user"  
+      - "/domain"  
+  filter:  
+    CurrentDirectory|startswith:  
+      - "C:\\Windows"  
+      - "C:\\Program Files"  
+  condition: selection and not filter  
+falsepositives:  
+  - Legitimate administrative usage of the "net user" command from standard system directories.  
+level: medium

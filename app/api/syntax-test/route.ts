@@ -1,0 +1,18 @@
+// app/api/syntax-test/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { runPs } from "@/lib/runPs";
+
+export async function POST(req: NextRequest) {
+  const { rulePath } = await req.json();
+  const { stdout, stderr, code } = await runPs("powershell/syntaxTest.ps1", [
+    "-RuleFilePath", rulePath,
+  ]);
+
+  if (code !== 0) {
+    return NextResponse.json({ success: false, stderr, detail: stdout }, { status: 500 });
+  }
+
+  // 最後の行だけ JSON
+  const jsonLine = stdout.trim().split(/\r?\n/).pop() as string;
+  return NextResponse.json(JSON.parse(jsonLine));
+}
