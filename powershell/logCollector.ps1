@@ -22,7 +22,7 @@ $detectionPath  = Join-Path $cfgDir 'detection_fields.txt'
 if (-not (Test-Path $detectionPath)) {
     Write-Error "detection_fields.txt not found"; exit 1
 }
-$detectionFields = Get-Content $detectionPath -Raw
+$detectionFields = Get-Content $detectionPath
 
 # Remove all files in the logs folder before execution
 $logDir = "$PSScriptRoot\logs"
@@ -95,7 +95,7 @@ if ($Mode -eq "ps") {
     }
 }
 
-Start-Sleep -Seconds 2
+Start-Sleep -Seconds 5
 
 if ($Mode -eq "cal") {
     $combinedXml = @{}
@@ -248,7 +248,7 @@ foreach ($logName in $combinedXml.Keys) {
         if ($xmlDoc.Event.System) {
             foreach ($node in $xmlDoc.Event.System.ChildNodes) {
                 $key = $node.Name
-                if ($baseKeysList -contains $key) {
+                if ($detectionFields -contains $key) {
                     $value = $node.InnerText
                     $finalLog += "${key}: $value`n"
                 }
