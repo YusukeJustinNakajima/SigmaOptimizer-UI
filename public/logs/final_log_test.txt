@@ -4,7 +4,6 @@
 #### log ####
 EventID: 1
 Level: 4
-Keywords: 0x8000000000000000
 Channel: Microsoft-Windows-Sysmon/Operational
 ProcessId: 4356
 Image: C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe
