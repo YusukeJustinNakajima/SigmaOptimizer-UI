@@ -11,10 +11,8 @@ By combining log analysis, rule evaluation, and iterative refinement powered by 
 ✅ **FP check of created rules using [evtx-baseline](https://github.com/NextronSystems/evtx-baseline)**  
 ✅ **Command obfuscation support ([Invoke-ArgFuscator](https://github.com/wietze/Invoke-ArgFuscator)) for robust detection**  
 
-![image](https://github.com/user-attachments/assets/31d28e55-0a13-4e21-b118-1ace3215e6af)
-
 ## Quick Demo
-https://github.com/user-attachments/assets/b324037e-9004-40d7-9a23-ea5659e4ed6b
+https://github.com/user-attachments/assets/ec7e025b-b3cd-4a86-bdd6-5198ffc4db2e
 
 ## 🚀 Usage  
 ### 🔧 Prerequisites   
