@@ -13,12 +13,16 @@ By combining log analysis, rule evaluation, and iterative refinement powered by 
 
 ![image](https://github.com/user-attachments/assets/31d28e55-0a13-4e21-b118-1ace3215e6af)
 
+## Quick Demo
+https://github.com/user-attachments/assets/b324037e-9004-40d7-9a23-ea5659e4ed6b
+
 ## 🚀 Usage  
 ### 🔧 Prerequisites   
 - **Windows environment** 
-- **Run `AutoSetup.ps1` to automate the entire setup process. This script handles all the necessary preparations seamlessly. Before executing the script, update the `OPENAI_APIKEY` section in `AutoSetup.ps1` with your own API key.**
+- **Node.js**
+- **Run `powershell/AutoSetup.ps1` to automate the entire setup process. This script handles all the necessary preparations seamlessly. Before executing the script, update the `OPENAI_APIKEY` section in `AutoSetup.ps1` with your own API key.**
     - Installing Required PowerShell Modules
-        - `Pester` (for running tests)  
+        - `Pester 5.x.x` (for running tests)  
         - `powershell-yaml` (for parsing YAML files)  
         - `Invoke-ArgFuscator` (for command obfuscation) 
     - Downloading and Setting Up Hayabusa
