@@ -14,7 +14,7 @@ By combining log analysis, rule evaluation, and iterative refinement powered by 
 ## Quick Demo
 https://github.com/user-attachments/assets/ec7e025b-b3cd-4a86-bdd6-5198ffc4db2e
 
-## 🚀 Usage  
+## 🚀 Getting Started  
 ### 🔧 Prerequisites   
 - **Windows environment** 
 - **Node.js**
@@ -32,3 +32,40 @@ https://github.com/user-attachments/assets/ec7e025b-b3cd-4a86-bdd6-5198ffc4db2e
 - **Recommended to configure the following two log sources to create better sigma rules:**
     - Microsoft-Windows-Sysmon/Operational -> Sysmon installation
     - Security EventID:4688 -> https://learn.microsoft.com/ja-jp/windows-server/identity/ad-ds/manage/component-updates/command-line-process-auditing
+
+### Installation Steps
+1. Repository Clone
+```
+git clone https://github.com/<your-org>/SigmaOptimizer-UI.git
+cd SigmaOptimizer-UI
+```
+
+2. Install Package
+```
+npm install
+```
+
+3. Install required PowerShell modules and binaries
+```
+cd powershell
+AutoSetup.ps1
+```
+
+### Development Server
+1. Start in development mode
+```
+npm run dev
+```
+
+2. Access to http://localhost:3000
+
+## 🤝 Contributing  
+I would love to hear your feedback and contributions! 🚀  
+If you try **SigmaOptimizer-UI** and have suggestions for improvements, **please submit a pull request or create an issue** on GitHub. Your contributions will help make this tool even better!  
+
+💡 **Ways to contribute:**  
+- Report **bugs** or **feature requests** via GitHub Issues 🐛  
+- Submit **pull requests** to enhance the rule generation logic 🔧  
+- Improve **documentation** or add **new functionalities** 📝  
+
+Your input is greatly appreciated! 🙌
