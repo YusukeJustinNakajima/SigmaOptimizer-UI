@@ -712,8 +712,8 @@ export default function SigmaRuleCreator() {
                         isTesting ? (
                           <div className="text-center">
                             <Loader2 className="h-10 w-10 animate-spin mx-auto mb-4 text-blue-600" />
-                            <p className="text-gray-600">Running detection test...</p>
-                            <p className="text-xs text-gray-500 mt-2">Testing against malicious activity logs</p>
+                            <p className="text-gray-700">Running detection test...</p>
+                            <p className="text-xs text-gray-600 mt-2">Testing against malicious activity logs</p>
                           </div>
                         ) : (
                           <Button onClick={runDetectionTest} className="w-full">
@@ -865,8 +865,8 @@ export default function SigmaRuleCreator() {
                         isTesting ? (
                           <div className="text-center">
                             <Loader2 className="h-10 w-10 animate-spin mx-auto mb-4 text-blue-600" />
-                            <p className="text-gray-600">Running false positive test...</p>
-                            <p className="text-xs text-gray-500 mt-2">Testing against benign activity logs</p>
+                            <p className="text-gray-700">Running false positive test...</p>
+                            <p className="text-xs text-gray-600 mt-2">Testing against benign activity logs</p>
                           </div>
                         ) : (
                           <Button onClick={runFalsePositiveTest} className="w-full">
