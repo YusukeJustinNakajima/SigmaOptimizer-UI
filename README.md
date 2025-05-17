@@ -36,7 +36,7 @@ https://github.com/user-attachments/assets/ec7e025b-b3cd-4a86-bdd6-5198ffc4db2e
 ### Installation Steps
 1. Repository Clone
 ```
-git clone https://github.com/<your-org>/SigmaOptimizer-UI.git
+git clone https://github.com/YusukeJustinNakajima/SigmaOptimizer-UI.git
 cd SigmaOptimizer-UI
 ```
 
