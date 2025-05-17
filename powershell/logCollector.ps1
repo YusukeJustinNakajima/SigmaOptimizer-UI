@@ -60,20 +60,16 @@ if ($Mode -eq "ps") {
         $ObfuscateCommand = Invoke-ArgFuscator -Command $Command -n 1
         $IsObfuscation = $true
     } catch {
-        # Write-Error "Error in Invoke-ArgFuscator: $_"
         $ObfuscateCommand = ""
         $IsObfuscation = $false
     }
     if ($IsObfuscation -eq $true) {
         foreach ($obsCmd in $ObfuscateCommand) {
-            # Write-Output "Executing obfuscated command in CMD process: $obsCmd"
             Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$obsCmd`"" -Wait
             $commandCount++
         }
     }
 } elseif ($Mode -eq "cal") {
-    # Write-Host "Selected MITRE Caldera environment." -ForegroundColor Green
-    # Write-Host "Waiting for 'splunkd' process to start..."
     # Wait for splunkd to start (check every 1 seconds)
     while (-not (Get-Process -Name "splunkd" -ErrorAction SilentlyContinue)) {
         Start-Sleep -Seconds 1
@@ -95,7 +91,7 @@ if ($Mode -eq "ps") {
     }
 }
 
-Start-Sleep -Seconds 5
+Start-Sleep -Seconds 2
 
 if ($Mode -eq "cal") {
     $combinedXml = @{}
@@ -175,6 +171,11 @@ else {
                 foreach ($event in $events) {
                     $xml = $event.ToXml()
 
+                    # Exclude logs containing "powershell" in cmd environment
+                    if ($envChoice -eq "cmd" -and $xml.ToLower() -match "powershell") {
+                        continue
+                    }
+
                     # Limit PowerShell logs to a maximum of 5
                     if ($logName -match "powershell") {
                         if ($powershellCount -ge 5) { continue }
@@ -193,7 +194,6 @@ else {
     }
 }
 
-# Write-Host "Start time: $startTime, End time: $endTime`n" -ForegroundColor Green
 
 $finalLog = ""
 foreach ($logName in $combinedXml.Keys) {
