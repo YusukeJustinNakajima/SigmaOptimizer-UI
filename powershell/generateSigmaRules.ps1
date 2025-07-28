@@ -3,16 +3,26 @@
 . "$PSScriptRoot\helpers\common.ps1"
 
 try {
-
     $finalLogPath = Join-Path $PSScriptRoot 'final_log.txt'
     $finalLog = Get-Content -Path $finalLogPath -Raw -ErrorAction Stop
 
     $sigmaOut = New-SigmaRule -evtxLog $finalLog
-    $ruleText     = Extract-SigmaRules -SigmaOutput $sigmaOut
+    $ruleText = Extract-SigmaRules -SigmaOutput $sigmaOut
+
+    # 配列の場合の処理
+    if ($ruleText -is [array]) {
+        if ($ruleText.Length -eq 1) {
+            $ruleText = $ruleText[0]
+        } else {
+            $ruleText = $ruleText -join "`n`n---`n`n"
+        }
+    }
 
     $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
     $dir       = Join-Path $PSScriptRoot 'rules\generate_rules'
-    if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir | Out-Null }
+    if (-not (Test-Path $dir)) { 
+        New-Item -ItemType Directory -Path $dir | Out-Null 
+    }
     $rulePath  = Join-Path $dir "generated_sigmarule_${timestamp}.yml"
 
     $ruleText | Out-File -FilePath $rulePath -Encoding utf8

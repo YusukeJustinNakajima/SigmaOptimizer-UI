@@ -70,16 +70,14 @@ function Invoke-OpenAIRequest {
 function New-SigmaRule { 
     param ( 
         [string]$evtxLog,
-        [int]$Iteration = 1  # Default to 1 if not provided
+        [int]$Iteration = 1
     ) 
 
-    # Check if $evtxLog is valid
     if ([string]::IsNullOrWhiteSpace($evtxLog)) { 
         Write-Output "Error: No valid logs found for Sigma rule generation." 
         return $null 
     } 
 
-    # Use a different role prompt for iterations greater than 1
     if ($Iteration -gt 1) {
         $roleContentToUse = $script:llmRole_iteration_after_second
     }
@@ -87,7 +85,7 @@ function New-SigmaRule {
         $roleContentToUse = $script:llmRole_iteration_first
     }
 
-    $sigmaRule = Invoke-OpenAIRequest -model "o3-mini" -roleContent $roleContentToUse -userContent $evtxLog
+    $sigmaRule = Invoke-OpenAIRequest -model "gpt-4o" -roleContent $roleContentToUse -userContent $evtxLog
 
     if ($sigmaRule) { 
         return $sigmaRule 
