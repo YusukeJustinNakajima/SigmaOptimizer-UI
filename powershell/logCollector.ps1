@@ -2,7 +2,8 @@
 
 param(
     [string]$Mode        = "cmd",       # cmd / ps / cal
-    [string]$Command     = ""
+    [string]$Command     = "",
+    [string]$LogSources  = "sysmon"
 )
 
 Import-Module Invoke-ArgFuscator
@@ -15,7 +16,6 @@ if (Test-Path $unrelatedPath) {
     $unrelatedLogs = Get-Content $unrelatedPath -Raw
 } else {
     $unrelatedLogs = ""
-    exit
 }
 
 $detectionPath  = Join-Path $cfgDir 'detection_fields.txt'
@@ -28,26 +28,34 @@ $detectionFields = Get-Content $detectionPath
 $logDir = "$PSScriptRoot\logs"
 if (Test-Path $logDir) {
     Remove-Item "$logDir\*" -Force -Recurse
-    # Write-Output "All files in '$logDir' have been removed."
 } else {
     New-Item -ItemType Directory -Path $logDir | Out-Null
-    # Write-Output "Directory '$logDir' created."
 }
 
 $commandCount = 1
-<#
-if ($Mode -ne "cal") {
-    # Write-Host "Block all external traffic to safely execute files and acquire logs`n" -ForegroundColor Green
-    New-NetFirewallRule -DisplayName "Block Internet" -Direction Outbound -Action Block -Enabled True -Profile Any | Out-Null
+
+$IsObfuscation = $false
+$ObfuscateCommand = @()
+
+if ($Mode -eq "powershell") {
+    $Mode = "ps"
+    Write-Host "Mode converted from 'powershell' to 'ps'" -ForegroundColor Yellow
 }
-#>
+
 if ($Mode -eq "ps") {
     $startTime = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile", "-Command", "`"$Command`"" -Wait
 
+    try {
+        $ObfuscateCommand = Invoke-ArgFuscator -Command $Command -n 1
+        $IsObfuscation = $true
+    } catch {
+        $ObfuscateCommand = @()
+        $IsObfuscation = $false
+    }
+    
     if ($IsObfuscation -eq $true) {
         foreach ($obsCmd in $ObfuscateCommand) {
-            Write-Output "Executing obfuscated command in PowerShell process: $obsCmd"
             Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile", "-Command", "`"$obsCmd`"" -Wait
             $commandCount++
         }
@@ -60,7 +68,7 @@ if ($Mode -eq "ps") {
         $ObfuscateCommand = Invoke-ArgFuscator -Command $Command -n 1
         $IsObfuscation = $true
     } catch {
-        $ObfuscateCommand = ""
+        $ObfuscateCommand = @()
         $IsObfuscation = $false
     }
     if ($IsObfuscation -eq $true) {
@@ -74,57 +82,81 @@ if ($Mode -eq "ps") {
     while (-not (Get-Process -Name "splunkd" -ErrorAction SilentlyContinue)) {
         Start-Sleep -Seconds 1
     }
-    # Write-Host "'splunkd' process detected."
     $startTimeObj = Get-Date
     $startTime = $startTimeObj.ToString("yyyy-MM-dd HH:mm:ss")
     $commandCount = 1
 } else {
     $startTime = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile", "-Command", "`"$command`"" -Wait
-
-    if ($IsObfuscation -eq $true) {
-        foreach ($obsCmd in $ObfuscateCommand) {
-            # Write-Output "Executing obfuscated command in PowerShell process: $obsCmd"
-            Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile", "-Command", "`"$obsCmd`"" -Wait
-            $commandCount++
-        }
-    }
+    Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile", "-Command", "`"$Command`"" -Wait
 }
 
-Start-Sleep -Seconds 2
+Start-Sleep -Seconds 3
+
+
+$requestedSources = $LogSources -split ','
+
+$logSourceMapping = @{
+    'sysmon' = 'Microsoft-Windows-Sysmon/Operational'
+    'application' = 'Application'
+    'security' = 'Security'
+    'system' = 'System'
+    'powershell' = 'Windows PowerShell'
+    'powershell-operational' = 'Microsoft-Windows-PowerShell/Operational'
+}
+
+
+if ($Mode -eq "cal") {
+    $logSources = @('Microsoft-Windows-Sysmon/Operational')
+} else {
+    [System.Collections.ArrayList]$logSources = @()
+    
+    foreach ($source in $requestedSources) {
+        $source = $source.Trim().ToLower()
+        
+        if ($logSourceMapping.ContainsKey($source)) {
+            if ($source -in @('powershell', 'powershell-operational') -and $Mode -ne "ps") {
+                continue
+            }
+            [void]$logSources.Add($logSourceMapping[$source])
+        }
+    }
+    
+    if ($logSources.Count -eq 0) {
+        [void]$logSources.Add('Microsoft-Windows-Sysmon/Operational')
+    }
+
+    $logSources = $logSources.ToArray()
+}
+
+Write-Host "Log sources count: $($logSources.Count)" -ForegroundColor Yellow
+for ($i = 0; $i -lt $logSources.Count; $i++) {
+    Write-Host "Log source [$i]: $($logSources[$i])" -ForegroundColor Cyan
+}
 
 if ($Mode -eq "cal") {
     $combinedXml = @{}
     $logName = "Microsoft-Windows-Sysmon/Operational"
-    # Get process ID of splunkd
     $parentPid = (Get-Process -Name "splunkd").Id
-    # Write-Host "Using ParentProcessId: $parentPid for log filtering." -ForegroundColor Cyan
     $filterXPath = "*[EventData[Data[@Name='ParentProcessId']='$parentPid']]"
     
     try {
-        
-        # Prompt the user to confirm that the MITRE Caldera Operation is complete
         $operationComplete = Read-Host "Is the MITRE Caldera Operation complete? (y/n)"
         while ($operationComplete -ne "y" -and $operationComplete -ne "yes") {
-            # Write-Host "Operation not complete. Waiting..." -ForegroundColor Yellow
             Start-Sleep -Seconds 3
             $operationComplete = Read-Host "`nIs the MITRE Caldera Operation complete? (y/n)"
         }
 
         $endTime = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
         
-        # Output EVTX files using wevtutil
         $sanitizedLogName = $logName -replace '[\\/]', '_'
         $evtxPath = "$logDir\$sanitizedLogName.evtx"
         wevtutil epl $logName $evtxPath 2> $null
 
-        # Retrieve logs from the EVTX file since the specified start time
         $events = Get-WinEvent -Path $evtxPath -FilterXPath $filterXPath | Where-Object { $_.TimeCreated -ge $startTimeObj }
         if ($events) {
             $logEntries = @()
             foreach ($event in $events) {
                 $xml = $event.ToXml()
-                # Write-Host "$xml"
                 $logEntries += $xml
             }
             if ($logEntries.Count -gt 0) {
@@ -132,74 +164,166 @@ if ($Mode -eq "cal") {
             }
         }
     } catch {
-        # Error handling (e.g., output if necessary)
+        # Error handling
     }
 }
 else {
     $endTime = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 
-    if ($Mode -eq "cmd") {
-        $logSources = @('Application', 'Security', 'System', 'Microsoft-Windows-Sysmon/Operational')
-    }
-    else {
-        $logSources = @('Application', 'Security', 'System', 'Microsoft-Windows-Sysmon/Operational', 'Windows Powershell', 'Microsoft-Windows-PowerShell/Operational')
-    }
-
     if (!(Test-Path $logDir)) {
         New-Item -ItemType Directory -Path $logDir | Out-Null
     }
 
-    $combinedXml = @{}  # Hashtable to store logs (XML strings) for each log source
+    $combinedXml = @{}
 
     foreach ($logName in $logSources) {
+        Write-Host "`nProcessing log source: $logName" -ForegroundColor Cyan
+        
         try {
             $sanitizedLogName = $logName -replace '[\\/]', '_'
             $evtxPath = "$logDir\$sanitizedLogName.evtx"
-            # Export EVTX using wevtutil
-            wevtutil epl $logName $evtxPath 2> $null
             
-            $events = Get-WinEvent -FilterHashtable @{
-                LogName   = $logName;
-                StartTime = $startTime;
-                EndTime   = $endTime
-            } -ErrorAction Stop
-
-            if ($events) {
-                $logEntries = @()  # Store logs for each log source
-                $powershellCount = 0
-
-                foreach ($event in $events) {
-                    $xml = $event.ToXml()
-
-                    # Exclude logs containing "powershell" in cmd environment
-                    if ($envChoice -eq "cmd" -and $xml.ToLower() -match "powershell") {
-                        continue
-                    }
-
-                    # Limit PowerShell logs to a maximum of 5
-                    if ($logName -match "powershell") {
-                        if ($powershellCount -ge 5) { continue }
-                        $powershellCount++
-                    }
-
-                    $logEntries += $xml
+            # Export EVTX using wevtutil
+            Write-Host "Exporting $logName to $evtxPath" -ForegroundColor Gray
+            $exportResult = wevtutil epl $logName $evtxPath 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host "Failed to export: $exportResult" -ForegroundColor Red
+                continue
+            }
+            
+            $events = @()
+            try {
+                $events = Get-WinEvent -FilterHashtable @{
+                    LogName   = $logName;
+                    StartTime = $startTime;
+                    EndTime   = $endTime
+                } -ErrorAction Stop
+                
+                Write-Host "Found $($events.Count) total events in $logName" -ForegroundColor Green
+                
+                # EventIDごとの集計
+                $eventIdCounts = $events | Group-Object -Property Id | Sort-Object Name
+                Write-Host "Event ID distribution:" -ForegroundColor Yellow
+                foreach ($group in $eventIdCounts) {
+                    Write-Host "  EventID $($group.Name): $($group.Count) events" -ForegroundColor Gray
                 }
+                
+            } catch {
+                Write-Host "No events found: $_" -ForegroundColor Yellow
+                continue
+            }
+
+            if ($events -and $events.Count -gt 0) {
+                $logEntries = @()
+                
+                if ($logName -match "PowerShell") {
+                    # Microsoft-Windows-PowerShell/Operational の場合、4104のみ
+                    if ($logName -eq "Microsoft-Windows-PowerShell/Operational") {
+                        $targetEvents = $events | Where-Object { $_.Id -in @(4104) }
+                        Write-Host "Found $($targetEvents.Count) events with ID 4104" -ForegroundColor Cyan
+                        
+                        $addedCount = 0
+                        $maxEvents = 10  # 上限10件
+                        
+                        foreach ($event in $targetEvents) {
+                            if ($addedCount -ge $maxEvents) {
+                                Write-Host "Reached limit of $maxEvents events" -ForegroundColor Yellow
+                                break
+                            }
+                            
+                            $xml = $event.ToXml()
+                            $logEntries += $xml
+                            $addedCount++
+                            Write-Host "  Added EventID $($event.Id) (total: $addedCount)" -ForegroundColor Green
+                        }
+                    }
+
+                    else {
+                        $addedCount = 0
+                        $maxEvents = 10 
+                        
+                        foreach ($event in $events) {
+                            if ($addedCount -ge $maxEvents) {
+                                Write-Host "Reached limit of $maxEvents events" -ForegroundColor Yellow
+                                break
+                            }
+                            
+                            $xml = $event.ToXml()
+                            $logEntries += $xml
+                            $addedCount++
+                            Write-Host "  Added EventID $($event.Id) (total: $addedCount)" -ForegroundColor Green
+                        }
+                    }
+                }
+                else {
+                    foreach ($event in $events) {
+                        $xml = $event.ToXml()
+                        
+                        # Exclude logs containing "powershell" in cmd environment
+                        if ($Mode -eq "cmd" -and $xml.ToLower() -match "powershell") {
+                            continue
+                        }
+                        
+                        $logEntries += $xml
+                    }
+                }
+                
+                Write-Host "Added $($logEntries.Count) entries to combinedXml" -ForegroundColor Green
+                
                 if ($logEntries.Count -gt 0) {
                     $combinedXml[$logName] = $logEntries
                 }
             }
         } catch {
-            # Write-Output "Error retrieving logs from '$logName'"
+            #Write-Host "Error processing $logName: $_" -ForegroundColor Red
+            continue
         }
     }
 }
 
+function Test-ShouldExcludeLog {
+    param([xml]$xmlDoc)
+    
+    $excludePatterns = @(
+        "conhost\.exe",
+        "logCollector\.ps1",
+        "Invoke-ArgFuscator",
+        "wevtutil.*epl",
+        "Get-WinEvent"
+    )
+    
+    if ($xmlDoc.Event.System) {
+        foreach ($node in $xmlDoc.Event.System.ChildNodes) {
+            foreach ($pattern in $excludePatterns) {
+                if ($node.InnerText -match $pattern) {
+                    return $true
+                }
+            }
+        }
+    }
+    
+    if ($xmlDoc.Event.EventData) {
+        foreach ($dataNode in $xmlDoc.Event.EventData.Data) {
+            foreach ($pattern in $excludePatterns) {
+                if ($dataNode.'#text' -match $pattern) {
+                    return $true
+                }
+            }
+        }
+    }
+    
+    return $false
+}
+
 
 $finalLog = ""
+
+
 foreach ($logName in $combinedXml.Keys) {
+
     $finalLog += "### $logName Log ###`n"
-    # Index variable to count log entries
     $logIndex = 1
+    
     foreach ($xmlString in $combinedXml[$logName]) {
         try {
             $xmlDoc = [xml]$xmlString
@@ -208,39 +332,13 @@ foreach ($logName in $combinedXml.Keys) {
             continue
         }
 
-        # Check if conhost.exe is present in the log
-        $containsConhost = $false
-
-        # Check System node elements
-        if ($xmlDoc.Event.System) {
-            foreach ($node in $xmlDoc.Event.System.ChildNodes) {
-                if ($node.InnerText -match "conhost.exe") {
-                    $containsConhost = $true
-                    break
-                }
-            }
-        }
-
-        # Check EventData node elements
-        if ($xmlDoc.Event.EventData -and -not $containsConhost) {
-            foreach ($dataNode in $xmlDoc.Event.EventData.Data) {
-                if ($dataNode.'#text' -match "conhost.exe") {
-                    $containsConhost = $true
-                    break
-                }
-            }
-        }
-
-        # If conhost.exe is found, skip this log entry
-        if ($containsConhost) {
+        if (Test-ShouldExcludeLog -xmlDoc $xmlDoc) {
             continue
         }
 
-        # Append log if conhost.exe is NOT found
         $finalLog += "#### log $logIndex ####`n"
         $logIndex++
 
-        # Append System node elements
         if ($xmlDoc.Event.System) {
             foreach ($node in $xmlDoc.Event.System.ChildNodes) {
                 $key = $node.Name
@@ -251,38 +349,93 @@ foreach ($logName in $combinedXml.Keys) {
             }
         }
 
-        # Append EventData node elements
+        if ($logName -match "PowerShell") {
+
+            $eventId = $xmlDoc.Event.System.EventID
+            if ($eventId -is [System.Xml.XmlElement]) {
+                $eventIdValue = $eventId.InnerText
+            } else {
+                $eventIdValue = $eventId
+            }
+            
+            # EventID 4103: Module Logging
+            if ($eventIdValue -eq "4103") {
+                $payload = $xmlDoc.Event.EventData.SelectSingleNode("Data[@Name='Payload']")
+                if ($payload -and $detectionFields -contains "Payload") {
+                    $finalLog += "Payload: $($payload.InnerText)`n"
+                }
+                
+                $contextInfo = $xmlDoc.Event.EventData.SelectSingleNode("Data[@Name='ContextInfo']")
+                if ($contextInfo -and $detectionFields -contains "ContextInfo") {
+                    $finalLog += "ContextInfo: $($contextInfo.InnerText)`n"
+                }
+            }
+            
+            # EventID 4104: Script Block Logging
+            elseif ($eventIdValue -eq "4104") {
+                # ScriptBlockText を取得
+                $scriptBlockText = $xmlDoc.Event.EventData.SelectSingleNode("Data[@Name='ScriptBlockText']")
+                if ($scriptBlockText -and $detectionFields -contains "ScriptBlockText") {
+                    $finalLog += "ScriptBlockText: $($scriptBlockText.InnerText)`n"
+                }
+                
+                $path = $xmlDoc.Event.EventData.SelectSingleNode("Data[@Name='Path']")
+                if ($path -and $detectionFields -contains "Path") {
+                    $finalLog += "Path: $($path.InnerText)`n"
+                }
+
+                $scriptBlockId = $xmlDoc.Event.EventData.SelectSingleNode("Data[@Name='ScriptBlockId']")
+                if ($scriptBlockId -and $detectionFields -contains "ScriptBlockId") {
+                    $finalLog += "ScriptBlockId: $($scriptBlockId.InnerText)`n"
+                }
+            }
+        }
+
         if ($xmlDoc.Event.EventData) {
             foreach ($dataNode in $xmlDoc.Event.EventData.Data) {
                 $key = $dataNode.Name
-                # If environment is cal, skip ParentImage and ParentCommandLine
                 if ($Mode -eq "cal" -and ($key -eq "ParentImage" -or $key -eq "ParentCommandLine")) {
                     continue
                 }
                 if ($detectionFields -contains $key) {
                     $value = $dataNode.'#text'
-                    $finalLog += "${key}: $value`n"
+                    if ($value) {
+                        $finalLog += "${key}: $value`n"
+                    }
                 }
             }
         }
         $finalLog += "`n"
     }
+    
     $finalLog += "`n"
 }
 
-# Append unrelated logs to final_log
-$finalLog += "`n" + $unrelatedLogs
+if ($unrelatedLogs) {
+    $finalLog += $unrelatedLogs
+}
 
-# Save to file
+if ($finalLog -eq "") {
+    $finalLog = "No logs were collected for the specified time range and log sources.`n"
+    $finalLog += "Requested sources: $($logSources -join ', ')`n"
+    $finalLog += "Time range: $startTime to $endTime`n"
+}
+
 $finalLog | Out-File -FilePath "$PSScriptRoot\final_log.txt" -Encoding utf8
-Copy-Item -Path "$PSScriptRoot\final_log.txt" -Destination "$PSScriptRoot\..\public\logs\final_log.txt"
-# Write-Output "The logs, including unrelated logs, have been saved to final_log.txt."
+
+$publicLogsDir = "$PSScriptRoot\..\public\logs"
+if (-not (Test-Path $publicLogsDir)) {
+    New-Item -ItemType Directory -Path $publicLogsDir -Force | Out-Null
+}
+
+Copy-Item -Path "$PSScriptRoot\final_log.txt" -Destination "$publicLogsDir\final_log.txt" -Force
 
 $result = [pscustomobject]@{
     Success      = $true
     FinalLogPath = "/logs/final_log.txt"
     StartTime    = "$startTime +09:00"
     EndTime      = "$endTime +09:00"
+    LogSources   = $logSources -join ","
 }
 
 $result | ConvertTo-Json -Compress

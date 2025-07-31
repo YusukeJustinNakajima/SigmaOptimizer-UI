@@ -21,6 +21,11 @@ import {
   Download,
   Check,
   Save,
+  FileText,
+  Shield,
+  Settings,
+  Database,
+  PowerIcon
 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { motion } from "framer-motion"
@@ -35,7 +40,7 @@ export default function SigmaRuleCreator() {
   const [syntaxTestResult, setSyntaxTestResult] = useState<"pending" | "success" | "failed">("pending")
   const [detectionTestResult, setDetectionTestResult] = useState<"pending" | "success" | "failed">("pending")
   const [falsePositiveTestResult, setFalsePositiveTestResult] = useState<"pending" | "success" | "failed">("pending")
-  const [logSource, setLogSource] = useState("ALL")
+  const [logSources, setLogSources] = useState<string[]>(["sysmon"]);
   const [isGenerating, setIsGenerating] = useState(false)
   const [isTesting, setIsTesting] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
@@ -61,8 +66,7 @@ export default function SigmaRuleCreator() {
   const handleGenerateLogs = async () => {
     setIsGenerating(true);
     try {
-
-      const { FinalLogPath, StartTime, EndTime } = await collectLogs(); // Wait for success
+      const { FinalLogPath, StartTime, EndTime } = await collectLogs(); 
       const txt = await fetch(FinalLogPath).then(r => r.text());
       
       setFinalLog(txt);
@@ -72,7 +76,7 @@ export default function SigmaRuleCreator() {
     } catch (err) {
       console.error("[collectLogs error]", err); 
       alert("collectLogs failed");
-    }finally {
+    } finally {
       setIsGenerating(false);
     }
   };
@@ -91,7 +95,10 @@ export default function SigmaRuleCreator() {
   const collectLogs = async (): Promise<{ FinalLogPath: string, StartTime: string, EndTime: string }> => {
     const res = await fetch("/api/log-collector", {
       method: "POST",
-      body: JSON.stringify({ mode, command }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ mode, command, logSources }),
     });
 
     if (!res.ok) throw new Error("log-collector API error");
@@ -347,6 +354,213 @@ export default function SigmaRuleCreator() {
                       </div>
                     </RadioGroup>
                   </div>
+                  <div className="mt-4">
+                  {/*// ログソース選択部分を以下のように置き換え*/}
+                  <div className="mt-4">
+                  <Label className="text-base mb-3 block">Select Log Sources</Label>
+                  <div className="space-y-3">
+                    {/* Sysmon */}
+                    <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                        onClick={() => {
+                          if (logSources.includes("sysmon")) {
+                            setLogSources(logSources.filter(src => src !== "sysmon"));
+                          } else {
+                            setLogSources([...logSources, "sysmon"]);
+                          }
+                        }}>
+                      <input
+                        type="checkbox"
+                        id="sysmon"
+                        checked={logSources.includes("sysmon")}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setLogSources([...logSources, "sysmon"]);
+                          } else {
+                            setLogSources(logSources.filter(src => src !== "sysmon"));
+                          }
+                        }}
+                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <Database className="h-4 w-4 text-blue-600" />
+                      <div className="flex-1">
+                        <Label htmlFor="sysmon" className="text-sm font-medium cursor-pointer select-none">
+                          Sysmon
+                        </Label>
+                        <p className="text-xs text-gray-500 mt-0.5 select-none">System Monitor event logs (Default)</p>
+                      </div>
+                    </div>
+
+                    {/* Application */}
+                    <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                        onClick={() => {
+                          if (logSources.includes("application")) {
+                            setLogSources(logSources.filter(src => src !== "application"));
+                          } else {
+                            setLogSources([...logSources, "application"]);
+                          }
+                        }}>
+                      <input
+                        type="checkbox"
+                        id="application"
+                        checked={logSources.includes("application")}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setLogSources([...logSources, "application"]);
+                          } else {
+                            setLogSources(logSources.filter(src => src !== "application"));
+                          }
+                        }}
+                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <FileText className="h-4 w-4 text-green-600" />
+                      <div className="flex-1">
+                        <Label htmlFor="application" className="text-sm font-medium cursor-pointer select-none">
+                          Application
+                        </Label>
+                        <p className="text-xs text-gray-500 mt-0.5 select-none">Application event logs</p>
+                      </div>
+                    </div>
+
+                    {/* Security */}
+                    <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                        onClick={() => {
+                          if (logSources.includes("security")) {
+                            setLogSources(logSources.filter(src => src !== "security"));
+                          } else {
+                            setLogSources([...logSources, "security"]);
+                          }
+                        }}>
+                      <input
+                        type="checkbox"
+                        id="security"
+                        checked={logSources.includes("security")}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setLogSources([...logSources, "security"]);
+                          } else {
+                            setLogSources(logSources.filter(src => src !== "security"));
+                          }
+                        }}
+                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <Shield className="h-4 w-4 text-red-600" />
+                      <div className="flex-1">
+                        <Label htmlFor="security" className="text-sm font-medium cursor-pointer select-none">
+                          Security
+                        </Label>
+                        <p className="text-xs text-gray-500 mt-0.5 select-none">Security audit logs</p>
+                      </div>
+                    </div>
+
+                    {/* System */}
+                    <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                        onClick={() => {
+                          if (logSources.includes("system")) {
+                            setLogSources(logSources.filter(src => src !== "system"));
+                          } else {
+                            setLogSources([...logSources, "system"]);
+                          }
+                        }}>
+                      <input
+                        type="checkbox"
+                        id="system"
+                        checked={logSources.includes("system")}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setLogSources([...logSources, "system"]);
+                          } else {
+                            setLogSources(logSources.filter(src => src !== "system"));
+                          }
+                        }}
+                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <Settings className="h-4 w-4 text-purple-600" />
+                      <div className="flex-1">
+                        <Label htmlFor="system" className="text-sm font-medium cursor-pointer select-none">
+                          System
+                        </Label>
+                        <p className="text-xs text-gray-500 mt-0.5 select-none">Windows system event logs</p>
+                      </div>
+                    </div>
+
+                    {/* PowerShell logs - only show when PowerShell mode is selected */}
+                    {mode === "powershell" && (
+                      <>
+                        <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                            onClick={() => {
+                              if (logSources.includes("powershell")) {
+                                setLogSources(logSources.filter(src => src !== "powershell"));
+                              } else {
+                                setLogSources([...logSources, "powershell"]);
+                              }
+                            }}>
+                          <input
+                            type="checkbox"
+                            id="powershell"
+                            checked={logSources.includes("powershell")}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setLogSources([...logSources, "powershell"]);
+                              } else {
+                                setLogSources(logSources.filter(src => src !== "powershell"));
+                              }
+                            }}
+                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <Terminal className="h-4 w-4 text-indigo-600" />
+                          <div className="flex-1">
+                            <Label htmlFor="powershell" className="text-sm font-medium cursor-pointer select-none">
+                              Windows PowerShell
+                            </Label>
+                            <p className="text-xs text-gray-500 mt-0.5 select-none">Classic PowerShell logs</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                            onClick={() => {
+                              if (logSources.includes("powershell-operational")) {
+                                setLogSources(logSources.filter(src => src !== "powershell-operational"));
+                              } else {
+                                setLogSources([...logSources, "powershell-operational"]);
+                              }
+                            }}>
+                          <input
+                            type="checkbox"
+                            id="powershell-operational"
+                            checked={logSources.includes("powershell-operational")}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setLogSources([...logSources, "powershell-operational"]);
+                              } else {
+                                setLogSources(logSources.filter(src => src !== "powershell-operational"));
+                              }
+                            }}
+                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <Code className="h-4 w-4 text-indigo-600" />
+                          <div className="flex-1">
+                            <Label htmlFor="powershell-operational" className="text-sm font-medium cursor-pointer select-none">
+                              PowerShell/Operational
+                            </Label>
+                            <p className="text-xs text-gray-500 mt-0.5 select-none">Enhanced PowerShell logging</p>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  
+                  {/* 選択されたログソースの数を表示 */}
+                  <p className="text-xs text-gray-600 mt-3">
+                    {logSources.length} log source{logSources.length !== 1 ? 's' : ''} selected
+                  </p>
+                </div>
+                  </div>
                 </div>
 
                 <div>
@@ -428,7 +642,7 @@ export default function SigmaRuleCreator() {
                 </div>
                 <div className="text-sm text-gray-500">
                   <span className="font-semibold">Mode:</span> {mode.toUpperCase()} |
-                  <span className="font-semibold ml-2">Log Source:</span> {logSource}
+                  <span className="font-semibold ml-2">Log Source:</span> {logSources}
                 </div>
               </div>
             </CardHeader>
@@ -522,7 +736,7 @@ export default function SigmaRuleCreator() {
                 </div>
                 <div className="text-sm text-gray-500">
                   <span className="font-semibold">Mode:</span> {mode.toUpperCase()} |
-                  <span className="font-semibold ml-2">Log Source:</span> {logSource}
+                  <span className="font-semibold ml-2">Log Source:</span> {logSources}
                 </div>
               </div>
             </CardHeader>
@@ -665,7 +879,7 @@ export default function SigmaRuleCreator() {
                 </div>
                 <div className="text-sm text-gray-500">
                   <span className="font-semibold">Mode:</span> {mode.toUpperCase()} |
-                  <span className="font-semibold ml-2">Log Source:</span> {logSource}
+                  <span className="font-semibold ml-2">Log Source:</span> {logSources}
                 </div>
               </div>
             </CardHeader>
@@ -782,7 +996,7 @@ export default function SigmaRuleCreator() {
                 </div>
                 <div className="text-sm text-gray-500">
                   <span className="font-semibold">Mode:</span> {mode.toUpperCase()} |
-                  <span className="font-semibold ml-2">Log Source:</span> {logSource}
+                  <span className="font-semibold ml-2">Log Source:</span> {logSources}
                 </div>
               </div>
             </CardHeader>

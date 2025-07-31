@@ -2,15 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { runPs } from "@/lib/runPs";
 
 export async function POST(req: NextRequest) {
-  const { mode, command } = await req.json();
+  const { mode, command, logSources = ["sysmon"] } = await req.json();
+  
+  // ログソースの配列をカンマ区切りの文字列に変換
+  const logSourcesString = logSources.join(",");
+  
   const { stdout, stderr, code } = await runPs("powershell/logCollector.ps1", [
     "-Mode", mode,
-    "-Command", command
+    "-Command", command,
+    "-LogSources", logSourcesString
   ]);
-
-  // for debug
-  // console.log("STDOUT>>>\n" + stdout + "\n<<<");
-  // console.log("STDERR>>>\n" + stderr + "\n<<<");
 
   if (code !== 0) {
     return NextResponse.json({ success: false, stderr, detail: stdout }, { status: 500 });
