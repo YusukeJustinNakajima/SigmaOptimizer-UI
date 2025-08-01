@@ -286,24 +286,80 @@ Describe 'Sigma Rule Tests' {
 }
 "@
 
-    # Write test script to temporary file and run Invoke-Pester
+    # Write test script to temporary file
     $tempTestFile = Join-Path $env:TEMP "TempSigmaTests.ps1"
-    $testScriptTemplate | Out-File -FilePath $tempTestFile -Encoding utf8   
+    $testScriptTemplate | Out-File -FilePath $tempTestFile -Encoding utf8
     
-    $testResult = Invoke-Pester -Script $tempTestFile -PassThru -Quiet
-
-    # Temporary file deletion (wait a bit if in use)
+        # カスタム出力をキャプチャするための配列
+    $customOutput = @()
+    
+    # Pesterの設定を行い、出力をキャプチャ
+    $configuration = [PesterConfiguration]::Default
+    $configuration.Run.Path = $tempTestFile
+    $configuration.Run.PassThru = $true
+    $configuration.Output.Verbosity = 'None'
+    $configuration.Should.ErrorAction = 'Continue'
+    
+    # テストを実行し、標準出力をキャプチャ
+    $testOutput = ""
+    $testResult = Invoke-Pester -Configuration $configuration -WarningAction SilentlyContinue 4>&1 | Tee-Object -Variable testOutput
+    
+    # Temporary file deletion
     Start-Sleep -Seconds 0.5
-    Remove-Item $tempTestFile -Force
+    Remove-Item $tempTestFile -Force -ErrorAction SilentlyContinue
 
     $FailedCount = $testResult.FailedCount
     
-    if ($FailedCount -eq 0) {
-        Write-Host -ForegroundColor Green "All tests passed successfully!"
-        return $true
-    } else {
-        Write-Host -ForegroundColor Red "$FailedCount tests failed!"
-        return $false
+    # エラー詳細を収集
+    $errorMessages = @()
+    
+    if ($FailedCount -gt 0) {
+        # 失敗したテストから詳細情報を抽出
+        foreach ($test in $testResult.Tests) {
+            if (-not $test.Passed) {
+                $errorMessages += "❌ Test Failed: $($test.ExpandedPath)"
+                
+                # テストの失敗理由を取得
+                if ($test.ErrorRecord) {
+                    # Shouldアサーションのメッセージを抽出
+                    $shouldMessage = $test.ErrorRecord.Exception.Message
+                    if ($shouldMessage -match "Expected.*but") {
+                        $errorMessages += "   Reason: $shouldMessage"
+                    }
+                }
+                
+                # スタックトレースから Write-Output の内容を探す
+                $stackTrace = $test.StackTrace -split "`n"
+                foreach ($line in $stackTrace) {
+                    if ($line -match "File.*first key is") {
+                        $errorMessages += "   Details: $line"
+                    }
+                }
+                
+                $errorMessages += ""
+            }
+        }
+        
+        # もしエラーメッセージが空の場合、生の出力から抽出を試みる
+        if ($errorMessages.Count -eq 1) {
+            $outputString = $testOutput | Out-String
+            if ($outputString -match "File.*first key is.*expected") {
+                $matches[0] -split "`n" | ForEach-Object {
+                    if ($_ -match "File.*first key is") {
+                        $errorMessages += "   $_"
+                    }
+                }
+            }
+        }
+    }
+    
+    # 結果を返す
+    return @{
+        Success = ($FailedCount -eq 0)
+        FailedCount = $FailedCount
+        TotalCount = $testResult.TotalCount
+        PassedCount = $testResult.PassedCount
+        ErrorMessages = ($errorMessages -join "`n")
     }
     
 }

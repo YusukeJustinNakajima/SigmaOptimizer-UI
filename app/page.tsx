@@ -52,6 +52,7 @@ export default function SigmaRuleCreator() {
   const [endTime, setEndTime] = useState("")
   const [fpLogOption, setFpLogOption] = useState<"default" | "custom">("default");
   const [customLogName, setCustomLogName] = useState("");
+  const [syntaxErrorMessage, setSyntaxErrorMessage] = useState("");
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -132,14 +133,31 @@ export default function SigmaRuleCreator() {
   const runSyntaxTest = async () => {
     setIsTesting(true);
     setSyntaxTestResult("pending");
+    setSyntaxErrorMessage("");
+    
     const res = await fetch("/api/syntax-test", {
       method: "POST",
       body: JSON.stringify({ rulePath }),
     });
 
     const data = await res.json();
-    setSyntaxTestResult(data.Success ? "success" : "failed");
+    const testPassed = data.Success ? "success" : "failed";
+    setSyntaxTestResult(testPassed);
+    
+    // Save Error Message
+    if (!data.Success) {
+      const errorMessage = data.Details || data.Message || "Syntax validation failed";
+      setSyntaxErrorMessage(errorMessage);
+    }
+    
     setIsTesting(false);
+    
+    // If the syntax test is successful, it will automatically proceed to the next step.
+    if (testPassed === "success") {
+      setTimeout(() => {
+        nextStep();
+      }, 1500);
+    }
   };
 
   const runDetectionTest = async () => {
@@ -151,8 +169,16 @@ export default function SigmaRuleCreator() {
     });
     
     const data = await res.json();
-    setDetectionTestResult(data.Success ? "success" : "failed");
+    const testPassed = data.Success ? "success" : "failed";
+    setDetectionTestResult(testPassed);
     setIsTesting(false);
+
+    // If the syntax test is successful, it will automatically proceed to the next step.
+    if (testPassed === "success") {
+      setTimeout(() => {
+        nextStep();
+      }, 1500); 
+    }
   };
 
   const runFalsePositiveTest = async () => {
@@ -793,7 +819,7 @@ export default function SigmaRuleCreator() {
                           <Loader2 className="mr-1 h-4 w-4 animate-spin" /> Saving…
                         </>
                       ) : (
-                        "Save Rule"
+                        "Modify & Save Rule"
                       )}
                     </Button>
                   </div>
@@ -813,9 +839,9 @@ export default function SigmaRuleCreator() {
                             <p className="text-gray-600">Testing syntax...</p>
                           </div>
                         ) : (
-                          <Button onClick={runSyntaxTest} className="w-full">
-                            Run Syntax Test
-                          </Button>
+                          <div className="text-center">
+                            <p className="text-gray-600">Click the button below to validate your Sigma rule syntax</p>
+                          </div>
                         )
                       ) : syntaxTestResult === "success" ? (
                         <motion.div
@@ -841,7 +867,41 @@ export default function SigmaRuleCreator() {
                             <XCircle className="h-8 w-8 text-red-600" />
                           </div>
                           <h3 className="text-lg font-medium text-red-800 mb-2">Syntax Test Failed</h3>
-                          <p className="text-red-700">Please check your rule for syntax errors.</p>
+                          <p className="text-red-700 mb-3">Please check your rule for syntax errors.</p>
+                          
+                          {/* エラーメッセージ表示 */}
+                          {syntaxErrorMessage && (
+                            <div className="mt-4 text-left">
+                              <div className="bg-red-50 border border-red-200 rounded-md p-3 max-h-32 overflow-y-auto">
+                                <p className="text-sm text-red-800 font-mono whitespace-pre-wrap">
+                                  {syntaxErrorMessage}
+                                </p>
+                              </div>
+                              
+                              {/* エラーログダウンロードボタン */}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="mt-2"
+                                onClick={() => {
+                                  const blob = new Blob([syntaxErrorMessage], { type: 'text/plain' });
+                                  const url = URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = 'syntax_error_log.txt';
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  document.body.removeChild(a);
+                                  URL.revokeObjectURL(url);
+                                  
+                                  toast.success("Error log downloaded");
+                                }}
+                              >
+                                <Download className="h-4 w-4 mr-2" />
+                                Download Error Log
+                              </Button>
+                            </div>
+                          )}
                         </motion.div>
                       )}
                     </div>
@@ -853,9 +913,18 @@ export default function SigmaRuleCreator() {
               <Button variant="outline" onClick={prevStep}>
                 Back
               </Button>
-              <Button onClick={nextStep} disabled={syntaxTestResult !== "success" || isTesting}>
-                Continue to Detection Test
-              </Button>
+              <div className="flex gap-2">
+                {syntaxTestResult === "pending" && !isTesting && (
+                  <Button onClick={runSyntaxTest}>
+                    Run Syntax Test
+                  </Button>
+                )}
+                {syntaxTestResult === "failed" && (
+                  <Button onClick={nextStep} disabled>
+                    Continue to Detection Test
+                  </Button>
+                )}
+              </div>
             </CardFooter>
           </Card>
         </motion.div>
@@ -900,11 +969,45 @@ export default function SigmaRuleCreator() {
                     <Textarea
                       ref={textareaRef}
                       value={sigmaRule}
-                      readOnly
+                      onChange={(e) => setSigmaRule(e.target.value)}
                       className="font-mono min-h-[450px] w-full border-none focus:ring-0 focus-visible:ring-0"
+                      spellCheck={false}
                     />
                   </div>
+
+                  {/* Save Button を左側カードの右下に配置 */}
+                  <div className="mt-2 flex justify-end">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={isSaving}
+                      onClick={async () => {
+                        setIsSaving(true);
+                        try {
+                          await fetch("/api/save-rule", {
+                            method: "POST",
+                            body: JSON.stringify({ path: rulePath, content: sigmaRule }),
+                          });
+                          toast.success("Rule saved!");
+                          await runDetectionTest();
+                        } catch (err) {
+                          toast.error("Save failed");
+                        } finally {
+                          setIsSaving(false);
+                        }
+                      }}
+                    >
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="mr-1 h-4 w-4 animate-spin" /> Saving…
+                        </>
+                      ) : (
+                        "Modify & Save Rule"
+                      )}
+                    </Button>
+                  </div>
                 </div>
+                
                 <div className="space-y-4">
                   <div className="border rounded-md p-4 bg-gray-50 h-[450px] flex flex-col">
                     <h3 className="font-medium mb-2">Detection Testing</h3>
@@ -930,9 +1033,9 @@ export default function SigmaRuleCreator() {
                             <p className="text-xs text-gray-600 mt-2">Testing against malicious activity logs</p>
                           </div>
                         ) : (
-                          <Button onClick={runDetectionTest} className="w-full">
-                            Run Detection Test
-                          </Button>
+                          <div className="text-center">
+                            <p className="text-gray-600">Click the button below to test detection capability</p>
+                          </div>
                         )
                       ) : detectionTestResult === "success" ? (
                         <motion.div
@@ -970,9 +1073,18 @@ export default function SigmaRuleCreator() {
               <Button variant="outline" onClick={prevStep}>
                 Back
               </Button>
-              <Button onClick={nextStep}>
-                Continue to False Positive Test
-              </Button>
+              <div className="flex gap-2">
+                {detectionTestResult === "pending" && !isTesting && (
+                  <Button onClick={runDetectionTest}>
+                    Run Detection Test
+                  </Button>
+                )}
+                {detectionTestResult === "failed" && (
+                  <Button onClick={nextStep} disabled>
+                    Continue to False Positive Test
+                  </Button>
+                )}
+              </div>
             </CardFooter>
           </Card>
         </motion.div>
@@ -1017,9 +1129,45 @@ export default function SigmaRuleCreator() {
                     <Textarea
                       ref={textareaRef}
                       value={sigmaRule}
-                      readOnly
+                      onChange={(e) => setSigmaRule(e.target.value)}
                       className="font-mono min-h-[450px] w-full border-none focus:ring-0 focus-visible:ring-0"
+                      spellCheck={false}
                     />
+                  </div>
+
+                  {/* Save Button */}
+                  <div className="mt-2 flex justify-end">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={isSaving}
+                      onClick={async () => {
+                        setIsSaving(true);
+                        try {
+                          /* save using /api/save-rule */
+                          await fetch("/api/save-rule", {
+                            method: "POST",
+                            body: JSON.stringify({ path: rulePath, content: sigmaRule }),
+                          });
+                          toast.success("Rule saved!");
+
+                          /* Re-run False Positive Test immediately after saving */
+                          await runFalsePositiveTest();
+                        } catch (err) {
+                          toast.error("Save failed");
+                        } finally {
+                          setIsSaving(false);
+                        }
+                      }}
+                    >
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="mr-1 h-4 w-4 animate-spin" /> Saving…
+                        </>
+                      ) : (
+                        "Modify & Save Rule"
+                      )}
+                    </Button>
                   </div>
                 </div>
                 <div className="space-y-4">

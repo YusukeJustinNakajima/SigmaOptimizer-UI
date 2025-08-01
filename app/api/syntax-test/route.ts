@@ -1,4 +1,3 @@
-// app/api/syntax-test/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { runPs } from "@/lib/runPs";
 
@@ -8,11 +7,23 @@ export async function POST(req: NextRequest) {
     "-RuleFilePath", rulePath,
   ]);
 
-  if (code !== 0) {
-    return NextResponse.json({ success: false, stderr, detail: stdout }, { status: 500 });
+  if (code !== 0 && !stdout.trim()) {
+    return NextResponse.json({ 
+      Success: false, 
+      Message: "Syntax validation failed",
+      Details: stderr || "Unknown error occurred"
+    }, { status: 200 });
   }
 
-  // 最後の行だけ JSON
-  const jsonLine = stdout.trim().split(/\r?\n/).pop() as string;
-  return NextResponse.json(JSON.parse(jsonLine));
+  try {
+    const jsonLine = stdout.trim().split(/\r?\n/).pop() as string;
+    const result = JSON.parse(jsonLine);
+    return NextResponse.json(result);
+  } catch (e) {
+    return NextResponse.json({ 
+      Success: false, 
+      Message: "Failed to parse test results",
+      Details: stdout + "\n" + stderr
+    }, { status: 200 });
+  }
 }
