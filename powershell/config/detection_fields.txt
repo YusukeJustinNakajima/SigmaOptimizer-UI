@@ -21,7 +21,6 @@ PipeName
 type
 riskEventType
 Data
-Product
 Hashes
 DestinationHostname
 ParentCommandLine
