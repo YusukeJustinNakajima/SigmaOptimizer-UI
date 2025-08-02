@@ -276,7 +276,7 @@ export default function SigmaRuleCreator() {
       {/* GitHub link in top right */}
       <div className="absolute top-0 right-0 p-4">
         <a
-          href="https://github.com/YusukeJustinNakajima/SigmaOptimizer"
+          href="https://github.com/YusukeJustinNakajima/SigmaOptimizer-UI"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center text-blue-600 hover:text-blue-800 transition-colors"
