@@ -18,7 +18,11 @@ https://github.com/user-attachments/assets/ec7e025b-b3cd-4a86-bdd6-5198ffc4db2e
 ### 🔧 Prerequisites   
 - **Windows environment** 
 - **Node.js**
-- **Run `powershell/AutoSetup.ps1` to automate the entire setup process. This script handles all the necessary preparations seamlessly. Before executing the script, update the `OPENAI_APIKEY` section in `AutoSetup.ps1` with your own API key.**
+- **Run `powershell/AutoSetup.ps1` to automate the entire setup process. This script handles all the necessary preparations seamlessly. 
+    - Setting OpenAI API Key
+        - The script prompts you to enter your OpenAI API key, which is required for LLM-based rule generation.
+    - Generating unrelatedLogs.txt
+        - The script generates a file named `powershell/config/unrelatedLogs.txt` to store logs that are not related to the Sigma rule generation process.
     - Installing Required PowerShell Modules
         - `Pester 5.x.x` (for running tests)  
         - `powershell-yaml` (for parsing YAML files)  
