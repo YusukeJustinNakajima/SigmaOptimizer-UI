@@ -55,6 +55,17 @@ cd powershell
 AutoSetup.ps1
 ```
 
+4. Copy the `.env.example` file to create a `.env` file, and modify the model used as needed.
+```
+# AI Provider Settings
+AI_PROVIDER=OpenAI  # Options: OpenAI, Claude
+AI_MODEL=GPT-4.1  # Leave empty for default model
+
+# API Keys
+OPENAI_APIKEY=your-openai-key-here
+CLAUDE_APIKEY=your-claude-key-here
+```
+
 ### Development Server
 1. Start in development mode
 ```
