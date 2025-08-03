@@ -90,7 +90,7 @@ if ($Mode -eq "ps") {
     Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile", "-Command", "`"$Command`"" -Wait
 }
 
-Start-Sleep -Seconds 1
+Start-Sleep -Seconds 3
 
 $requestedSources = $LogSources -split ','
 
