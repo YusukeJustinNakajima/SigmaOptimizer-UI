@@ -55,7 +55,7 @@ cd powershell
 AutoSetup.ps1
 ```
 
-4. Copy the `.env.example` file to create a `.env` file, and modify the model used as needed.
+4. Copy the `.env.example` file located in the `powershell` directory to create a `.env` file, and modify the model used as needed.
 ```
 # AI Provider Settings
 AI_PROVIDER=OpenAI  # Options: OpenAI, Claude
