@@ -51,8 +51,8 @@ node_modules/
 *.ps1~
 
 powershell/hayabusa.exe
-powershell/hayabusa*
 powershell/rules/generate_rules/*
+powershell/config/unrelatedLogs.txt
 
 public/*.csv
 
