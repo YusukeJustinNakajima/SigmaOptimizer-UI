@@ -25,7 +25,10 @@ import {
   Shield,
   Settings,
   Database,
-  PowerIcon
+  PowerIcon,
+  Sparkles,
+  RefreshCw,
+  Brain
 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { motion } from "framer-motion"
@@ -53,6 +56,12 @@ export default function SigmaRuleCreator() {
   const [fpLogOption, setFpLogOption] = useState<"default" | "custom">("default");
   const [customLogName, setCustomLogName] = useState("");
   const [syntaxErrorMessage, setSyntaxErrorMessage] = useState("");
+  
+  // New states for LLM optimization
+  const [optimizationPrompt, setOptimizationPrompt] = useState("");
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [optimizedRule, setOptimizedRule] = useState("");
+  const [optimizationHistory, setOptimizationHistory] = useState<{prompt: string, result: string}[]>([]);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -194,8 +203,54 @@ export default function SigmaRuleCreator() {
     setIsTesting(false);
   };
 
+  // New function for LLM optimization
+  const optimizeWithLLM = async () => {
+    if (!optimizationPrompt.trim()) {
+      toast.error("Please enter optimization instructions");
+      return;
+    }
+
+    setIsOptimizing(true);
+    try {
+      const res = await fetch("/api/llm-optimize", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ 
+          rule: sigmaRule,
+          prompt: optimizationPrompt,
+          rulePath: rulePath
+        }),
+      });
+
+      if (!res.ok) throw new Error("LLM optimization API error");
+      
+      const { OptimizedRule } = await res.json();
+      
+      setOptimizedRule(OptimizedRule);
+      setSigmaRule(OptimizedRule);
+      
+      // Add to history
+      setOptimizationHistory([...optimizationHistory, {
+        prompt: optimizationPrompt,
+        result: OptimizedRule
+      }]);
+      
+      // Clear prompt
+      setOptimizationPrompt("");
+      
+      toast.success("Rule optimized successfully");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to optimize rule with LLM");
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
   const nextStep = () => {
-    if (currentStep < 5) {
+    if (currentStep < 6) {
       setCurrentStep(currentStep + 1)
     }
   }
@@ -294,10 +349,10 @@ export default function SigmaRuleCreator() {
         </div>
       </div>
 
-      {/* Progress Indicator */}
+      {/* Progress Indicator - Updated to include 6 steps */}
       <div className="mb-6">
         <div className="flex justify-between">
-          {["Command Input", "Sigma Rule Generation", "Syntax Test", "Detection Test", "False Positive Test"].map(
+          {["Command Input", "Sigma Rule Generation", "Syntax Test", "Detection Test", "False Positive Test", "LLM Optimization"].map(
             (step, index) => (
               <div key={index} className="flex flex-col items-center">
                 <div
@@ -324,7 +379,7 @@ export default function SigmaRuleCreator() {
           <div className="absolute top-0 h-1 bg-gray-200 w-full"></div>
           <div
             className="absolute top-0 h-1 bg-blue-600 transition-all duration-300"
-            style={{ width: `${((currentStep - 1) / 4) * 100}%` }}
+            style={{ width: `${((currentStep - 1) / 5) * 100}%` }}
           ></div>
         </div>
       </div>
@@ -650,7 +705,7 @@ export default function SigmaRuleCreator() {
       )}
 
 
-      {/* Step 2 : Sigma Rule Generation */}
+      {/* Step 2 : Sigma Rule Generation */}
       {currentStep === 2 && (
         <motion.div
           initial="initial"
@@ -1274,39 +1329,236 @@ export default function SigmaRuleCreator() {
               <div className="space-x-2">
                 {falsePositiveTestResult !== "pending" && (
                   <Button
-                    variant="secondary"
-                    onClick={() => {
-                      setIsTesting(true)
-                      // Logic to regenerate rule based on test results
-                      setTimeout(() => {
-                        setSigmaRule((prevRule) => {
-                          // This would typically call an API to optimize the rule
-                          return `${prevRule}\n# Optimized based on false positive test results`
-                        })
-                        setIsTesting(false)
-                        setCurrentStep(2) // Go back to rule generation step
-
-                        toast("Rule optimized", {
-                          description: "Sigma rule has been optimized based on test results",
-                        })
-                      }, 1500)
-                    }}
-                    disabled={isTesting}
+                    onClick={() => nextStep()}
                   >
-                    {isTesting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Optimizing...
-                      </>
-                    ) : (
-                      "Regenerate Rule"
-                    )}
+                    Continue to LLM Optimization
                   </Button>
                 )}
+              </div>
+            </CardFooter>
+          </Card>
+        </motion.div>
+      )}
+
+      {/* Step 6: LLM Optimization */}
+      {currentStep === 6 && (
+        <motion.div
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          variants={pageVariants}
+          transition={{ duration: 0.3 }}
+        >
+          <Card>
+            <CardHeader className="pb-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle className="flex items-center">
+                    <Brain className="mr-2 h-5 w-5" />
+                    LLM Rule Optimization
+                  </CardTitle>
+                  <CardDescription>Fine-tune your Sigma rule for threat hunting using AI</CardDescription>
+                </div>
+                <div className="text-sm text-gray-500">
+                  <span className="font-semibold">Mode:</span> {mode.toUpperCase()} |
+                  <span className="font-semibold ml-2">Log Source:</span> {logSources.join(", ")}
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent>
+              <div className="grid grid-cols-2 gap-6">
+                {/* Left side - Current Rule */}
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <Label className="text-base font-semibold">Current Sigma Rule</Label>
+                      <div className="flex space-x-2">
+                        <Button variant="outline" size="sm" onClick={copyToClipboard}>
+                          {isCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                          <span className="ml-2">{isCopied ? "Copied" : "Copy"}</span>
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={downloadRule}>
+                          <Download className="h-4 w-4" />
+                          <span className="ml-2">Download</span>
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="border rounded-md p-1 bg-gray-50">
+                      <Textarea
+                        ref={textareaRef}
+                        value={sigmaRule}
+                        onChange={(e) => setSigmaRule(e.target.value)}
+                        className="font-mono min-h-[400px] w-full border-none focus:ring-0 focus-visible:ring-0"
+                        spellCheck={false}
+                      />
+                    </div>
+
+                                        {/* Save Button */}
+                    <div className="mt-2 flex justify-end">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={isSaving}
+                        onClick={async () => {
+                          setIsSaving(true);
+                          try {
+                            await fetch("/api/save-rule", {
+                              method: "POST",
+                              body: JSON.stringify({ path: rulePath, content: sigmaRule }),
+                            });
+                            toast.success("Rule saved!");
+                          } catch (err) {
+                            toast.error("Save failed");
+                          } finally {
+                            setIsSaving(false);
+                          }
+                        }}
+                      >
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="mr-1 h-4 w-4 animate-spin" /> Saving…
+                          </>
+                        ) : (
+                          "Save Rule"
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                
+
+                {/* Right side - Optimization Panel */}
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-base font-semibold mb-2 block flex items-center">
+                      <Sparkles className="mr-2 h-4 w-4 text-yellow-500" />
+                      Optimization Instructions
+                    </Label>
+                    <Textarea
+                      placeholder="Describe how you want to optimize the rule..."
+                      value={optimizationPrompt}
+                      onChange={(e) => setOptimizationPrompt(e.target.value)}
+                      className="min-h-[150px] w-full"
+                    />
+                  </div>
+
+                  {/* Quick Optimization Templates */}
+                  <div>
+                    <Label className="text-sm font-medium mb-2 block">Quick Templates</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setOptimizationPrompt("Make this rule more specific to reduce false positives while maintaining detection capability")}
+                      >
+                        Reduce False Positives
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setOptimizationPrompt("Add detection for common evasion techniques related to this attack")}
+                      >
+                        Detect Evasion
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setOptimizationPrompt("Make this rule more robustly so that broader threats can be detected .")}
+                      >
+                        Broader Detection
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setOptimizationPrompt("Add parent process detection and command line analysis")}
+                      >
+                        Process Analysis
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Optimization Button */}
+                  <div className="pt-4">
+                    <Button
+                      className="w-full"
+                      size="lg"
+                      onClick={optimizeWithLLM}
+                      disabled={isOptimizing || !optimizationPrompt.trim()}
+                    >
+                      {isOptimizing ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Optimizing with AI...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                          Optimize Rule
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  {/* Optimization History */}
+                  {optimizationHistory.length > 0 && (
+                    <div className="border-t pt-4">
+                      <Label className="text-sm font-medium mb-2 block">Optimization History</Label>
+                      <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                        {optimizationHistory.map((item, index) => (
+                          <div key={index} className="text-xs bg-gray-100 p-2 rounded">
+                            <p className="font-medium text-gray-700">Prompt {index + 1}:</p>
+                            <p className="text-gray-600 truncate">{item.prompt}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Test Results Summary */}
+              <div className="mt-6 border-t pt-4">
+                <h3 className="text-sm font-semibold mb-3">Previous Test Results</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-3 h-3 rounded-full ${syntaxTestResult === "success" ? "bg-green-500" : syntaxTestResult === "failed" ? "bg-red-500" : "bg-gray-300"}`} />
+                    <span className="text-sm">Syntax Test</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-3 h-3 rounded-full ${detectionTestResult === "success" ? "bg-green-500" : detectionTestResult === "failed" ? "bg-red-500" : "bg-gray-300"}`} />
+                    <span className="text-sm">Detection Test</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-3 h-3 rounded-full ${falsePositiveTestResult === "success" ? "bg-green-500" : falsePositiveTestResult === "failed" ? "bg-red-500" : "bg-gray-300"}`} />
+                    <span className="text-sm">False Positive Test</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+
+            <CardFooter className="flex justify-between">
+              <Button variant="outline" onClick={prevStep}>
+                Back
+              </Button>
+              <div className="flex gap-2">
                 <Button
-                  variant="default"
-                  disabled={falsePositiveTestResult !== "success" || isTesting || isSaved}
+                  variant="secondary"
+                  onClick={() => {
+                    // Reset optimization history and go back to step 3 to re-test
+                    setOptimizationHistory([]);
+                    setSyntaxTestResult("pending");
+                    setDetectionTestResult("pending");
+                    setFalsePositiveTestResult("pending");
+                    setCurrentStep(3);
+                  }}
+                >
+                  <TestTube className="mr-2 h-4 w-4" />
+                  Re-test Rule
+                </Button>
+                <Button
                   onClick={saveRule}
+                  disabled={isSaved}
                 >
                   {isSaved ? (
                     <>
@@ -1316,7 +1568,7 @@ export default function SigmaRuleCreator() {
                   ) : (
                     <>
                       <Save className="mr-2 h-4 w-4" />
-                      Finalize Sigma Rule
+                      Finalize Rule
                     </>
                   )}
                 </Button>

@@ -65,7 +65,7 @@ if ($Mode -eq "ps") {
     Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$Command`"" -Wait
 
     try {
-        $ObfuscateCommand = Invoke-ArgFuscator -Command $Command -n 1
+        $ObfuscateCommand = Invoke-ArgFuscator -Command $Command -n 0
         $IsObfuscation = $true
     } catch {
         $ObfuscateCommand = @()

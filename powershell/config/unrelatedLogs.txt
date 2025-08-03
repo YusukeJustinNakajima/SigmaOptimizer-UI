@@ -1,70 +1,141 @@
-### Non-relevant(benign) Logs ###
+﻿### Non-relevant(benign) Logs ###
+
+### Microsoft-Windows-Sysmon/Operational ###
+#### log ####
+EventID: 1
+Image: C:\Windows\System32\svchost.exe
+Description: Host Process for Windows Services
+OriginalFileName: svchost.exe
+CommandLine: C:\WINDOWS\system32\svchost.exe -k GPSvcGroup
+User: NT AUTHORITY\SYSTEM
+IntegrityLevel: System
+Hashes: MD5=5A33432E6DB9DC2BE4C52E7768F0319C,SHA256=D4DF279E1201638455A81F9AE79939945589A4A01D56F610E32490686D066319,IMPHASH=DE43BD45CC98C143357416C7519ECCFD
+ParentImage: C:\Windows\System32\services.exe
+ParentCommandLine: C:\WINDOWS\system32\services.exe
+
+#### log ####
+EventID: 3
+Image: C:\Users\yusuk\AppData\Local\AnthropicClaude\app-0.12.55\claude.exe
+User: yusuke\yusuk
+Initiated: true
+DestinationHostname: ec2-44-232-14-140.us-west-2.compute.amazonaws.com
+DestinationPort: 443
+
+#### log ####
+EventID: 10
+SourceImage: C:\Program Files\WindowsApps\Microsoft.GamingServices_29.103.2001.0_x64__8wekyb3d8bbwe\GamingServices.exe
+TargetImage: C:\WINDOWS\system32\lsass.exe
+GrantedAccess: 0x1000
+CallTrace: C:\WINDOWS\SYSTEM32\ntdll.dll+162294|C:\WINDOWS\SYSTEM32\WINSTA.dll+3532|C:\WINDOWS\SYSTEM32\WINSTA.dll+3360|C:\WINDOWS\SYSTEM32\WINSTA.dll+2de9|C:\WINDOWS\SYSTEM32\wtsapi32.dll+1623|C:\Program Files\WindowsApps\Microsoft.GamingServices_29.103.2001.0_x64__8wekyb3d8bbwe\GamingServices.DLL+212137|C...
+
+#### log ####
+EventID: 3
+Image: C:\Users\yusuk\AppData\Local\Programs\Microsoft VS Code\Code.exe
+User: yusuke\yusuk
+Initiated: true
+DestinationHostname: lb-140-82-114-22-iad.github.com
+DestinationPort: 443
+
+#### log ####
+EventID: 22
+QueryName: play.googleapis.com
+Image: <unknown process>
+User: NT AUTHORITY\SYSTEM
+
+#### log ####
+EventID: 2
+Image: C:\Users\yusuk\AppData\Local\AnthropicClaude\app-0.12.55\claude.exe
+TargetFilename: C:\Users\yusuk\AppData\Roaming\Claude\Network\bc4df61e-e8fb-44a4-9c60-0bcb79a9037a.tmp
+User: yusuke\yusuk
+
+#### log ####
+EventID: 10
+SourceImage: C:\WINDOWS\system32\svchost.exe
+TargetImage: C:\WINDOWS\system32\lsass.exe
+GrantedAccess: 0x1000
+CallTrace: C:\WINDOWS\SYSTEM32\ntdll.dll+162294|C:\WINDOWS\System32\KERNELBASE.dll+c5b2b|c:\windows\system32\lsm.dll+84f6|c:\windows\system32\lsm.dll+7fcd|C:\WINDOWS\System32\RPCRT4.dll+d3663|C:\WINDOWS\System32\RPCRT4.dll+d570e|C:\WINDOWS\System32\RPCRT4.dll+8a1ec|C:\WINDOWS\System32\RPCRT4.dll+880f7|C:\WI...
+
+#### log ####
+EventID: 3
+Image: C:\Users\yusuk\AppData\Local\AnthropicClaude\app-0.12.55\claude.exe
+User: yusuke\yusuk
+Initiated: true
+DestinationHostname: aterm.me
+DestinationPort: 53
 
 #### log ####
 EventID: 1
-Level: 4
-Keywords: 0x8000000000000000
-Channel: Microsoft-Windows-Sysmon/Operational
-ProcessId: 4356
-Image: C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe
-Description: Microsoft Edge
-Company: Microsoft Corporation
-OriginalFileName: msedge.exe
-CommandLine: "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --type=utility --utility-sub-type=PooledProcess2 --lang=ja --service-sandbox-type=utility --string-annotations --always-read-main-dll --field-trial-handle=9368,i,6373468643253194765,5732276439864926595,262144 --variations-seed-version --mojo-platform-channel-handle=9376 /prefetch:8
-CurrentDirectory: C:\Program Files (x86)\Microsoft\Edge\Application\133.0.3065.82\
-User: DESKTOP-T26GUME\yusuk
-LogonId: 0x165f71
-IntegrityLevel: Low
-Hashes: MD5=CD6D68B7FA50958781A74CFBD6F8FFC0,SHA256=A839B154678107EA69FA143CA0E8ABE97A9D8136CE773F67528D033AE3A3FB63,IMPHASH=2FCA962A4874BA383798133611FFC8C8
-ParentImage: C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe
-ParentCommandLine: "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --profile-directory=Default --restore-last-session --restart --flag-switches-begin --flag-switches-end
+Image: C:\Program Files (x86)\Google\GoogleUpdater\140.0.7273.0\updater.exe
+Description: Google Updater (x64)
+OriginalFileName: updater.exe
+CommandLine: "C:\Program Files (x86)\Google\GoogleUpdater\140.0.7273.0\updater.exe" --crash-handler --system "--database=C:\Program Files (x86)\Google\GoogleUpdater\140.0.7273.0\Crashpad" --url=https://clients2.google.com/cr/report --annotation=prod=Update4 --annotation=ver=140.0.7273.0 "--attachment=C:\Progr...
+User: NT AUTHORITY\SYSTEM
+IntegrityLevel: System
+Hashes: MD5=B4D5237F1250E784F61E417AE1C354C6,SHA256=F84AD2964728C606743DA854EBF96712AE30F0278CE7EA28CAF82DEB5E7231DC,IMPHASH=C906634BB7C021C056E5C719C4326D8A
+ParentImage: C:\Program Files (x86)\Google\GoogleUpdater\140.0.7273.0\updater.exe
+ParentCommandLine: "C:\Program Files (x86)\Google\GoogleUpdater\140.0.7273.0\updater.exe" --system --windows-service --service=update
 
-#### log  ####
+#### log ####
+EventID: 13
+EventType: SetValue
+Image: C:\WINDOWS\system32\svchost.exe
+TargetObject: HKU\S-1-5-21-701965350-2498010177-3693700297-1001\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Compatibility Assistant\Store\C:\Users\yusuk\AppData\Local\Programs\Microsoft VS Code\Code.exe
+Details: Binary Data
+User: NT AUTHORITY\SYSTEM
+
+#### log ####
+EventID: 3
+Image: C:\Users\yusuk\AppData\Local\AnthropicClaude\app-0.12.55\claude.exe
+User: yusuke\yusuk
+Initiated: true
+DestinationHostname: 141.194.54.34.bc.googleusercontent.com
+DestinationPort: 443
+
+#### log ####
+EventID: 3
+Image: C:\Users\yusuk\AppData\Local\AnthropicClaude\app-0.12.55\claude.exe
+User: yusuke\yusuk
+Initiated: true
+DestinationHostname: ec2-52-207-95-23.compute-1.amazonaws.com
+DestinationPort: 443
+
+#### log ####
 EventID: 22
-Level: 4
-Keywords: 0x8000000000000000
-Channel: Microsoft-Windows-Sysmon/Operational
-ProcessId: 3280
-QueryName: afdxtest.z01.azurefd.net
-Image: C:\Windows\SystemApps\Microsoft.Windows.Search_cw5n1h2txyewy\SearchApp.exe
-User: DESKTOP-T26GUME\yusuk
+QueryName: cadmus.script.ac
+Image: C:\Program Files\Google\Chrome\Application\chrome.exe
+User: yusuke\yusuk
 
-#### log  ####
+#### log ####
 EventID: 5
-Level: 4
-Keywords: 0x8000000000000000
-Channel: Microsoft-Windows-Sysmon/Operational
-ProcessId: 11016
-Image: C:\Users\yusuk\AppData\Local\Microsoft\OneDrive\25.020.0202.0001\FileCoAuth.exe
-User: DESKTOP-T26GUME\yusuk
+Image: C:\Users\yusuk\AppData\Local\Programs\Microsoft VS Code\Code.exe
+User: yusuke\yusuk
 
 #### log ####
-EventID: 5158
-Level: 0
-Keywords: 0x8020000000000000
-Channel: Security
-ProcessId: 8304
-Application: \device\harddiskvolume2\program files (x86)\microsoft\edge\application\msedge.exe
-SourcePort: 60681
-LayerRTID: 36
+EventID: 13
+EventType: SetValue
+Image: C:\Program Files (x86)\Common Files\Adobe\AdobeGCClient\AGSService.exe
+TargetObject: HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\AdobeGenuineService\Publisher
+Details: Adobe Inc.
+User: NT AUTHORITY\SYSTEM
 
 #### log ####
-EventID: 4688
-Level: 0
-Keywords: 0x8020000000000000
-Channel: Security
-SubjectUserName: yusuk
-ProcessId: 0x125c
-CommandLine: \??\C:\Windows\system32\conhost.exe 0xffffffff -ForceV1
-TargetUserSid: S-1-0-0
-TargetUserName: -
+EventID: 3
+Image: C:\Users\yusuk\AppData\Local\AnthropicClaude\app-0.12.55\claude.exe
+User: yusuke\yusuk
+Initiated: true
+DestinationHostname: -
+DestinationPort: 443
 
 #### log ####
-EventID: 5158
-Level: 0
-Keywords: 0x8020000000000000
-Channel: Security
-ProcessId: 1784
-Application: \device\harddiskvolume2\windows\system32\svchost.exe
-SourcePort: 55260
-LayerRTID: 36
+EventID: 1
+Image: C:\Program Files (x86)\Common Files\Adobe\AdobeGCClient\AGSService.exe
+Description: Adobe Genuine Software Integrity Service
+OriginalFileName: AGSService.exe
+CommandLine: "C:\Program Files (x86)\Common Files\Adobe\AdobeGCClient\AGSService.exe" \\.\pipe\gc_pipe_opyjnp 3
+User: yusuke\yusuk
+IntegrityLevel: Medium
+Hashes: MD5=3E47C33D70DC725FE85E61098907F08B,SHA256=582891D2E803243BD0132109EF44F47C3282619E0798471360240BF782461FCB,IMPHASH=F4F662C95125B1C518A6403FB2C8B60E
+ParentImage: C:\Program Files (x86)\Common Files\Adobe\AdobeGCClient\AGSService.exe
+ParentCommandLine: "C:\Program Files (x86)\Common Files\Adobe\AdobeGCClient\AGSService.exe"
+
+

@@ -192,3 +192,14 @@ detection:
       - "C:\\Windows"
       - "C:\\Program Files"
   condition: selection and not filter
+
+### Unexpected Output 14 (there is no "sysmon" in logsource) ###
+logsource:
+    product: windows
+    service: sysmon
+    category: process_creation
+
+### Unexpected Output 14 (Fixed) ###
+logsource:
+    product: windows
+    category: process_creation

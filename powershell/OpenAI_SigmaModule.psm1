@@ -47,7 +47,7 @@ function Invoke-OpenAIRequest {
     $userContent = $userContent -replace "`r", '\r'
     $userContent = $userContent -replace "`t", '\t'
 
-    if ($model -eq "gpt-4o") {
+    if ($model -eq "gpt-4o" -or $model -eq "gpt-4.1") {
         $body = @{
             model = $model
             messages = @(
@@ -128,7 +128,7 @@ function New-SigmaRule {
         $roleContentToUse = "You are a cybersecurity expert creating Sigma rules. Generate a complete, valid Sigma rule in YAML format."
     }
 
-    $sigmaRule = Invoke-OpenAIRequest -model "gpt-4o" -roleContent $roleContentToUse -userContent $evtxLog
+    $sigmaRule = Invoke-OpenAIRequest -model "gpt-4.1" -roleContent $roleContentToUse -userContent $evtxLog
 
     if ($sigmaRule) { 
         return $sigmaRule 

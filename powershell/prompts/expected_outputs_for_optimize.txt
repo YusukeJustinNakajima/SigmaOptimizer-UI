@@ -1,0 +1,615 @@
+### Expected Sigma Rule Output1 ###
+title: Set Files as System Files Using Attrib.EXE
+id: bb19e94c-59ae-4c15-8c12-c563d23fe52b
+related:
+    - id: efec536f-72e8-4656-8960-5e85d091345b
+      type: similar
+status: test
+description: Detects the execution of "attrib" with the "+s" flag to mark files as system files
+references:
+    - https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1564.001/T1564.001.md#atomic-test-3---create-windows-system-file-with-attrib
+    - https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/attrib
+    - https://unit42.paloaltonetworks.com/unit42-sure-ill-take-new-combojack-malware-alters-clipboards-steal-cryptocurrency/
+author: frack113
+date: 2022-02-04
+modified: 2023-03-14
+tags:
+    - attack.defense-evasion
+    - attack.t1564.001
+    - detection.threat-hunting
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection_img:
+        - Image|endswith: '\attrib.exe'
+        - OriginalFileName: 'ATTRIB.EXE'
+    selection_cli:
+        CommandLine|contains: ' +s '
+    condition: all of selection_*
+falsepositives:
+    - Unknown
+level: low
+
+### Expected Sigma Rule Output2 ###
+
+title: CobaltStrike Named Pipe Pattern Regex
+id: 0e7163d4-9e19-4fa7-9be6-000c61aad77a
+related:
+    - id: 85adeb13-4fc9-4e68-8a4a-c7cb2c336eb7 # Patterns
+      type: similar
+    - id: d5601f8c-b26f-4ab0-9035-69e11a8d4ad2 # Generic
+      type: similar
+status: test
+description: Detects the creation of a named pipe matching a pattern used by CobaltStrike Malleable C2 profiles
+references:
+    - https://svch0st.medium.com/guide-to-named-pipes-and-hunting-for-cobalt-strike-pipes-dc46b2c5f575
+author: Florian Roth (Nextron Systems)
+date: 2021-07-30
+modified: 2022-12-31
+tags:
+    - attack.defense-evasion
+    - attack.privilege-escalation
+    - attack.t1055
+logsource:
+    product: windows
+    category: pipe_created
+    definition: 'Note that you have to configure logging for Named Pipe Events in Sysmon config (Event ID 17 and Event ID 18). The basic configuration is in popular sysmon configuration (https://github.com/SwiftOnSecurity/sysmon-config), but it is worth verifying. You can also use other repo, e.g. https://github.com/Neo23x0/sysmon-config, https://github.com/olafhartong/sysmon-modular You can also use other repo, e.g. https://github.com/Neo23x0/sysmon-config, https://github.com/olafhartong/sysmon-modular. How to test detection? You can always use Cobalt Strike, but also you can check powershell script from this site https://svch0st.medium.com/guide-to-named-pipes-and-hunting-for-cobalt-strike-pipes-dc46b2c5f575'
+detection:
+    selection:
+        - PipeName|re: '\\mojo\.5688\.8052\.(?:183894939787088877|35780273329370473)[0-9a-f]{2}'
+        - PipeName|re: '\\wkssvc_?[0-9a-f]{2}'
+    condition: selection
+falsepositives:
+    - Unknown
+level: critical
+
+### Expected Sigma Rule Output3 ###
+
+title: Scheduled Task Creation From Potential Suspicious Parent Location
+id: 9494479d-d994-40bf-a8b1-eea890237021
+status: test
+description: |
+    Detects the execution of "schtasks.exe" from a parent that is located in a potentially suspicious location.
+    Multiple malware strains were seen exhibiting a similar behavior in order to achieve persistence.
+references:
+    - https://app.any.run/tasks/649e7b46-9bec-4d05-98a5-dfa9a13eaae5/
+author: Florian Roth (Nextron Systems)
+date: 2022-02-23
+modified: 2024-05-13
+tags:
+    - attack.execution
+    - attack.t1053.005
+    - detection.threat-hunting
+logsource:
+    product: windows
+    category: process_creation
+detection:
+    selection:
+        ParentImage|contains:
+            - ':\Temp\'
+            - '\AppData\Local\'
+            - '\AppData\Roaming\'
+            - '\Temporary Internet'
+            - '\Users\Public\'
+            - '\Windows\Temp\'
+        Image|endswith: '\schtasks.exe'
+        CommandLine|contains: '/Create '
+    filter_optional_common:
+        CommandLine|contains:
+            - 'update_task.xml'
+            - 'unattended.ini'
+    condition: selection and not 1 of filter_optional_*
+falsepositives:
+    - Software installers that run from temporary folders and also install scheduled tasks
+level: medium
+
+### Expected Sigma Rule Output4 ###
+
+title: Rundll32.EXE Calling DllRegisterServer Export Function Explicitly
+id: d81a9fc6-55db-4461-b962-0e78fea5b0ad
+related:
+    - id: 2569ed8c-1147-498a-9b8c-2ad3656b10ed # Renamed rundll32
+      type: similar
+status: test
+description: |
+    Detects when the DLL export function 'DllRegisterServer' is called in the commandline by Rundll32 explicitly where the DLL is located in a non-standard path.
+references:
+    - https://thedfirreport.com/2023/08/28/html-smuggling-leads-to-domain-wide-ransomware/
+    - https://www.virustotal.com/gui/file/94816439312563db982cd038cf77cbc5ef4c7003e3edee86e2b0f99e675ed4ed/behavior
+    - https://learn.microsoft.com/en-us/windows/win32/api/olectl/nf-olectl-dllregisterserver
+author: Andreas Braathen (mnemonic.io)
+date: 2023-10-17
+tags:
+    - attack.defense-evasion
+    - attack.t1218
+    - detection.threat-hunting
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection_image:
+        - Image|endswith: '\rundll32.exe'
+        - OriginalFileName: 'RUNDLL32.EXE'
+    selection_cmdline:
+        CommandLine|contains: 'DllRegisterServer'
+    filter_main_legit_paths:
+        CommandLine|contains:
+            - ':\Program Files (x86)'
+            - ':\Program Files\'
+            - ':\Windows\System32\'
+            - ':\Windows\SysWOW64\'
+    condition: all of selection_* and not 1 of filter_main_*
+falsepositives:
+    - Legitimate usage as part of application installation, but less likely from e.g. temporary paths.
+    - Not every instance is considered malicious, but this rule will capture the malicious usages.
+level: medium
+
+### Expected Sigma Rule Output5 ###
+
+title: Amsi.DLL Load By Uncommon Process
+id: facd1549-e416-48e0-b8c4-41d7215eedc8
+status: test
+description: Detects loading of Amsi.dll by uncommon processes
+references:
+    - https://infosecwriteups.com/amsi-bypass-new-way-2023-d506345944e9
+    - https://github.com/TheD1rkMtr/AMSI_patch
+    - https://github.com/surya-dev-singh/AmsiBypass-OpenSession
+author: frack113
+date: 2023-03-12
+modified: 2025-02-24
+tags:
+    - attack.defense-evasion
+    - attack.impact
+    - attack.t1490
+    - detection.threat-hunting
+logsource:
+    category: image_load
+    product: windows
+detection:
+    selection:
+        ImageLoaded|endswith: '\amsi.dll'
+    filter_main_exact:
+        Image|endswith:
+            - ':\Windows\explorer.exe'
+            - ':\Windows\Sysmon64.exe'
+    filter_main_generic:
+        Image|contains:
+            - ':\Program Files (x86)\'
+            - ':\Program Files\'
+            - ':\Windows\System32\'
+            - ':\Windows\SysWOW64\'
+            - ':\Windows\WinSxS\'
+    filter_optional_defender:
+        Image|contains: ':\ProgramData\Microsoft\Windows Defender\Platform\'
+        Image|endswith: '\MsMpEng.exe'
+    filter_main_dotnet:
+        Image|contains:
+            - ':\Windows\Microsoft.NET\Framework\'
+            - ':\Windows\Microsoft.NET\Framework64\'
+            - ':\Windows\Microsoft.NET\FrameworkArm\'
+            - ':\Windows\Microsoft.NET\FrameworkArm64\'
+        Image|endswith: '\ngentask.exe'
+    filter_main_null:
+        Image: null
+    filter_main_empty:
+        Image: ''
+    condition: selection and not 1 of filter_main_* and not 1 of filter_optional_*
+falsepositives:
+    - Legitimate third party apps installed in "ProgramData" and "AppData" might generate some false positives. Apply additional filters accordingly
+level: low
+
+### Expected Sigma Rule Output6 ###
+
+title: HH.EXE Initiated HTTP Network Connection
+id: 468a8cea-2920-4909-a593-0cbe1d96674a
+related:
+    - id: f57c58b3-ee69-4ef5-9041-455bf39aaa89
+      type: derived
+status: test
+description: |
+    Detects a network connection initiated by the "hh.exe" process to HTTP destination ports, which could indicate the execution/download of remotely hosted .chm files.
+references:
+    - https://www.splunk.com/en_us/blog/security/follina-for-protocol-handlers.html
+    - https://github.com/redcanaryco/atomic-red-team/blob/1cf4dd51f83dcb0ebe6ade902d6157ad2dbc6ac8/atomics/T1218.001/T1218.001.md
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2022-10-05
+tags:
+    - attack.defense-evasion
+    - attack.t1218.001
+    - detection.threat-hunting
+logsource:
+    category: network_connection
+    product: windows
+detection:
+    selection:
+        Image|endswith: '\hh.exe'
+        Initiated: 'true'
+        DestinationPort:
+            - 80
+            - 443
+    condition: selection
+falsepositives:
+    - False positive is expected from launching "hh.exe" for the first time on a machine in a while or simply from help files containing reference to external sources. Best correlate this with process creation and file events.
+level: medium
+
+### Expected Sigma Rule Output7 ###
+
+title: Network Connection Initiated From Users\Public Folder
+id: bcb03938-9f8b-487d-8d86-e480691e1d71
+related:
+    - id: 7b434893-c57d-4f41-908d-6a17bf1ae98f
+      type: derived
+status: test
+description: |
+    Detects a network connection initiated from a process located in the "C:\Users\Public" folder.
+    Attacker are known to drop their malicious payloads and malware in this directory as its writable by everyone.
+    Use this rule to hunt for potential suspicious or uncommon activity in your environement.
+references:
+    - https://docs.google.com/spreadsheets/d/17pSTDNpa0sf6pHeRhusvWG6rThciE8CsXTSlDUAZDyo
+author: Florian Roth (Nextron Systems)
+date: 2024-05-31
+tags:
+    - attack.command-and-control
+    - attack.t1105
+    - detection.threat-hunting
+logsource:
+    category: network_connection
+    product: windows
+detection:
+    selection:
+        Initiated: 'true'
+        Image|contains: ':\Users\Public\'
+    filter_optional_ibm:
+        Image|contains: ':\Users\Public\IBM\ClientSolutions\Start_Programs\' # IBM Client Solutions Default Location (Added by Tim Shelton - https://github.com/SigmaHQ/sigma/pull/3053/files)
+    condition: selection and not 1 of filter_optional_*
+falsepositives:
+    - Likely from legitimate third party application that execute from the "Public" directory.
+level: medium
+
+### Expected Sigma Rule Output8 ###
+
+title: PsExec Default Named Pipe
+id: f3f3a972-f982-40ad-b63c-bca6afdfad7c
+related:
+    - id: 42c575ea-e41e-41f1-b248-8093c3e82a28
+      type: derived
+status: test
+description: Detects PsExec service default pipe creation
+references:
+    - https://www.jpcert.or.jp/english/pub/sr/ir_research.html
+    - https://jpcertcc.github.io/ToolAnalysisResultSheet
+author: Thomas Patzke
+date: 2017-06-12
+modified: 2022-10-09
+tags:
+    - attack.execution
+    - attack.t1569.002
+    - attack.s0029
+    - detection.threat-hunting
+logsource:
+    category: pipe_created
+    product: windows
+    definition: 'Note that you have to configure logging for Named Pipe Events in Sysmon config (Event ID 17 and Event ID 18). The basic configuration is in popular sysmon configuration (https://github.com/SwiftOnSecurity/sysmon-config), but it is worth verifying. You can also use other repo, e.g. https://github.com/Neo23x0/sysmon-config, https://github.com/olafhartong/sysmon-modular. How to test detection? You can check powershell script from this site https://svch0st.medium.com/guide-to-named-pipes-and-hunting-for-cobalt-strike-pipes-dc46b2c5f575'
+detection:
+    selection:
+        PipeName: '\PSEXESVC'
+    condition: selection
+falsepositives:
+    - Unknown
+level: low
+
+### Expected Sigma Rule Output9 ###
+
+title: Uncommon PowerShell Hosts
+id: d7326048-328b-4d5e-98af-86e84b17c765
+related:
+    - id: 64e8e417-c19a-475a-8d19-98ea705394cc
+      type: derived
+status: test
+description: Detects alternate PowerShell hosts potentially bypassing detections looking for powershell.exe
+references:
+    - https://threathunterplaybook.com/hunts/windows/190815-RemoteServiceInstallation/notebook.html
+author: Roberto Rodriguez @Cyb3rWard0g
+date: 2019-08-11
+modified: 2023-12-11
+tags:
+    - attack.execution
+    - attack.t1059.001
+    - detection.threat-hunting
+logsource:
+    product: windows
+    category: ps_classic_start
+detection:
+    selection:
+        Data|contains: 'HostApplication='
+    # Note: Powershell Logging Data is localized. Meaning that "HostApplication" field will be translated to a different field on a non english layout. This rule doesn't take this into account due to the sheer ammount of possibilities. It's up to the user to add these cases.
+    filter_main_ps:
+        Data|contains:
+            - 'HostApplication=?:/Windows/System32/WindowsPowerShell/v1.0/powershell' # In some cases powershell was invoked with inverted slashes
+            - 'HostApplication=?:/Windows/SysWOW64/WindowsPowerShell/v1.0/powershell' # In some cases powershell was invoked with inverted slashes
+            - 'HostApplication=?:\Windows\System32\sdiagnhost.exe'
+            - 'HostApplication=?:\Windows\System32\WindowsPowerShell\v1.0\powershell'
+            - 'HostApplication=?:\Windows\SysWOW64\sdiagnhost.exe'
+            - 'HostApplication=?:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell'
+            - 'HostApplication=powershell'
+    filter_optional_citrix:
+        Data|contains: 'Citrix\ConfigSync\ConfigSync.ps1'
+    condition: selection and not 1 of filter_main_* and not 1 of filter_optional_*
+falsepositives:
+    - Programs using PowerShell directly without invocation of a dedicated interpreter
+    - MSP Detection Searcher
+    - Citrix ConfigSync.ps1
+level: medium
+
+### Expected Sigma Rule Output10 ###
+
+title: Scheduled Task Created - Registry
+id: 93ff0ceb-e0ef-4586-8cd8-a6c277d738e3
+status: test
+description: Detects the creation of a scheduled task via Registry keys.
+references:
+    - https://center-for-threat-informed-defense.github.io/summiting-the-pyramid/analytics/task_scheduling/
+    - https://posts.specterops.io/abstracting-scheduled-tasks-3b6451f6a1c5
+author: Center for Threat Informed Defense (CTID) Summiting the Pyramid Team
+date: 2023-09-27
+tags:
+    - attack.execution
+    - attack.persistence
+    - attack.privilege-escalation
+    - attack.s0111
+    - attack.t1053.005
+    - car.2013-08-001
+    - detection.threat-hunting
+logsource:
+    product: windows
+    category: registry_event
+detection:
+    selection:
+        TargetObject|contains:
+            - '\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks\'
+            - '\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree\'
+    condition: selection
+falsepositives:
+    - Likely as this is a normal behaviour on Windows
+level: low
+
+### Expected Sigma Rule Output11 ###
+
+title: Shell Context Menu Command Tampering
+id: 868df2d1-0939-4562-83a7-27408c4a1ada
+status: test
+description: Detects changes to shell context menu commands. Use this rule to hunt for potential anomalies and suspicious shell commands.
+references:
+    - https://mrd0x.com/sentinelone-persistence-via-menu-context/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2024-03-06
+tags:
+    - attack.persistence
+    - detection.threat-hunting
+logsource:
+    category: registry_set
+    product: windows
+detection:
+    selection:
+        TargetObject|contains|all:
+            - '\Software\Classes\'
+            - '\shell\'
+            - '\command\'
+    condition: selection
+falsepositives:
+    - Likely from new software installation suggesting to add context menu items. Such as "PowerShell", "Everything", "Git", etc.
+level: low
+
+### Expected Sigma Rule Output12 ###
+
+title: Uncommon GrantedAccess Flags On LSASS
+id: 678dfc63-fefb-47a5-a04c-26bcf8cc9f65
+related:
+    - id: 32d0d3e2-e58d-4d41-926b-18b520b2b32d
+      type: obsolete
+status: test
+description: Detects process access to LSASS memory with uncommon access flags 0x410 and 0x01410
+author: Florian Roth (Nextron Systems)
+date: 2022-03-13
+modified: 2023-11-30
+tags:
+    - attack.credential-access
+    - attack.t1003.001
+    - attack.s0002
+    - detection.threat-hunting
+logsource:
+    category: process_access
+    product: windows
+detection:
+    selection:
+        TargetImage|endswith: '\lsass.exe'
+        GrantedAccess|endswith: '10'
+    # Absolute paths to programs that cause false positives
+    filter1:
+        SourceImage:
+            - 'C:\Program Files\Common Files\McAfee\MMSSHost\MMSSHOST.exe'
+            - 'C:\Program Files\Malwarebytes\Anti-Malware\MBAMService.exe'
+            - 'C:\Program Files\Windows Defender\MsMpEng.exe'
+            - 'C:\PROGRAMDATA\MALWAREBYTES\MBAMSERVICE\ctlrupdate\mbupdatr.exe'
+            - 'C:\Windows\System32\lsass.exe'
+            - 'C:\Windows\System32\msiexec.exe'
+            - 'C:\WINDOWS\System32\perfmon.exe'
+            - 'C:\WINDOWS\system32\taskhostw.exe'
+            - 'C:\WINDOWS\system32\taskmgr.exe'
+            - 'C:\WINDOWS\system32\wbem\wmiprvse.exe'
+            - 'C:\Windows\SysWOW64\msiexec.exe'
+            - 'C:\Windows\sysWOW64\wbem\wmiprvse.exe'
+    # Windows Defender
+    filter2:
+        SourceImage|startswith: 'C:\ProgramData\Microsoft\Windows Defender\'
+        SourceImage|endswith: '\MsMpEng.exe'
+    # Microsoft Gaming Services
+    filter3:
+        SourceImage|startswith: 'C:\Program Files\WindowsApps\'
+        SourceImage|endswith: '\GamingServices.exe'
+    # Process Explorer
+    filter4:
+        SourceImage|endswith:
+            - '\PROCEXP64.EXE'
+            - '\PROCEXP.EXE'
+    # VMware Tools
+    filter5:
+        SourceImage|startswith: 'C:\ProgramData\VMware\VMware Tools\'
+        SourceImage|endswith: '\vmtoolsd.exe'
+    # Antivirus and EDR agents
+    filter6:
+        SourceImage|startswith:
+            - 'C:\Program Files\'
+            - 'C:\Program Files (x86)\'
+        SourceImage|contains: 'Antivirus'
+    filter_nextron:
+        # SourceImage|startswith: 'C:\Windows\Temp\asgard2-agent\'  # Can be a manual THOR installation
+        SourceImage|endswith:
+            - '\thor64.exe'
+            - '\thor.exe'
+            - '\aurora-agent-64.exe'
+            - '\aurora-agent.exe'
+    filter_ms_products:
+        SourceImage|contains|all:
+            - '\AppData\Local\Temp\'
+            - '\vs_bootstrapper_'
+        GrantedAccess: '0x1410'
+    # Generic Filter for 0x1410 filter (caused by so many programs like DropBox updates etc.)
+    filter_generic:
+        SourceImage|startswith:
+            - 'C:\Program Files\'
+            - 'C:\Program Files (x86)\'
+            - 'C:\WINDOWS\system32\'
+    filter_wer:
+        SourceCommandLine: 'C:\WINDOWS\system32\wermgr.exe -upload'
+    filter_localappdata:
+        SourceImage|contains|all:
+            - 'C:\Users\'
+            - '\AppData\Local\'
+        SourceImage|endswith:
+            - '\Microsoft VS Code\Code.exe'
+            - '\software_reporter_tool.exe'
+            - '\DropboxUpdate.exe'
+            - '\MBAMInstallerService.exe'
+            - '\WebEx\WebexHost.exe'
+            - '\Programs\Microsoft VS Code\Code.exe'
+            - '\JetBrains\Toolbox\bin\jetbrains-toolbox.exe'
+    filter_xampp:
+        SourceImage|endswith: '\xampp-control.exe'
+        GrantedAccess: '0x410'
+    filter_games:
+        SourceImage|contains: '\SteamLibrary\steamapps\'
+        GrantedAccess:
+            - '0x410'
+            - '0x10'
+    condition: selection and not 1 of filter*
+falsepositives:
+    - Legitimate software accessing LSASS process for legitimate reason
+level: medium
+
+### Expected Sigma Rule Output13 ###
+
+title: Scheduled Task Created - FileCreation
+id: a762e74f-4dce-477c-b023-4ed81df600f9
+status: test
+description: Detects the creation of a scheduled task via file creation.
+references:
+    - https://center-for-threat-informed-defense.github.io/summiting-the-pyramid/analytics/task_scheduling/
+    - https://posts.specterops.io/abstracting-scheduled-tasks-3b6451f6a1c5
+author: Center for Threat Informed Defense (CTID) Summiting the Pyramid Team
+date: 2023-09-27
+tags:
+    - attack.execution
+    - attack.persistence
+    - attack.privilege-escalation
+    - attack.t1053.005
+    - attack.s0111
+    - car.2013-08-001
+    - detection.threat-hunting
+logsource:
+    product: windows
+    category: file_event
+detection:
+    selection:
+        TargetFilename|contains:
+            - ':\Windows\System32\Tasks\'
+            - ':\Windows\SysWOW64\Tasks\'
+            - ':\Windows\Tasks\'
+    condition: selection
+falsepositives:
+    - Normal behaviour on Windows
+level: low
+
+### Expected Sigma Rule Output14 ###
+
+title: AADInternals PowerShell Cmdlets Execution - PsScript
+id: 91e69562-2426-42ce-a647-711b8152ced6
+related:
+    - id: c86500e9-a645-4680-98d7-f882c70c1ea3
+      type: similar
+status: test
+description: Detects ADDInternals Cmdlet execution. A tool for administering Azure AD and Office 365. Which can be abused by threat actors to attack Azure AD or Office 365.
+references:
+    - https://o365blog.com/aadinternals/
+    - https://github.com/Gerenios/AADInternals
+author: Austin Songer (@austinsonger), Nasreddine Bencherchali (Nextron Systems), Swachchhanda Shrawan Poudel (Nextron Systems)
+date: 2022-12-23
+modified: 2025-02-06
+tags:
+    - attack.execution
+    - attack.reconnaissance
+    - attack.discovery
+    - attack.credential-access
+    - attack.impact
+logsource:
+    product: windows
+    category: ps_script
+    definition: Script Block Logging must be enable
+detection:
+    selection:
+        ScriptBlockText|contains:
+            # Since most of the cmdlets use a unique enough string which is "-AADInt" we only used that portion. For a complete list please check the references linked above
+            - 'Add-AADInt'
+            - 'ConvertTo-AADInt'
+            - 'Disable-AADInt'
+            - 'Enable-AADInt'
+    condition: selection
+falsepositives:
+    - Legitimate use of the library for administrative activity
+level: high
+
+### Expected Sigma Rule Output15 ###
+
+title: HackTool - CrackMapExec File Indicators
+id: 736ffa74-5f6f-44ca-94ef-1c0df4f51d2a
+related:
+    - id: 9433ff9c-5d3f-4269-99f8-95fc826ea489
+      type: obsolete
+status: experimental
+description: Detects file creation events with filename patterns used by CrackMapExec.
+references:
+    - https://github.com/byt3bl33d3r/CrackMapExec/
+author: Nasreddine Bencherchali (Nextron Systems)
+date: 2024-03-11
+modified: 2024-06-27
+tags:
+    - attack.credential-access
+    - attack.t1003.001
+logsource:
+    product: windows
+    category: file_event
+detection:
+    selection_path:
+        TargetFilename|startswith: 'C:\Windows\Temp\' # The disk extension is hardcoded in the tool.
+    selection_names_str:
+        TargetFilename|endswith:
+            - '\temp.ps1'
+            - '\msol.ps1'
+    selection_names_re:
+        - TargetFilename|re: '\\[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.txt$'
+        - TargetFilename|re: '\\[a-zA-Z]{8}\.tmp$'
+    condition: selection_path and 1 of selection_names_*
+falsepositives:
+    - Unknown
+level: high
