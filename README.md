@@ -12,7 +12,7 @@ By combining log analysis, rule evaluation, and iterative refinement powered by 
 ✅ **Command obfuscation support ([Invoke-ArgFuscator](https://github.com/wietze/Invoke-ArgFuscator)) for robust detection**  
 
 ## Quick Demo
-https://github.com/user-attachments/assets/ec7e025b-b3cd-4a86-bdd6-5198ffc4db2e
+https://github.com/user-attachments/assets/7424b073-8841-4fc2-af27-ed7d5b020df9
 
 ## 🚀 Getting Started  
 ### 🔧 Prerequisites   
