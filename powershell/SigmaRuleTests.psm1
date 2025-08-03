@@ -246,7 +246,7 @@ Describe 'Sigma Rule Tests' {
                                         "file_rename", "file_delete", "file_change", "file_access", "create_stream_hash",
                                         "create_remote_thread", "dns", "firewall", "webserver")
                     `$validServices = @("auditd", "modsecurity", "diagnosis-scripted", "firewall-as", "msexchange-management",
-                                    "security", "system", "taskscheduler", "terminalservices-localsessionmanager", "windefend",
+                                    "security", "system", "sysmon", "taskscheduler", "terminalservices-localsessionmanager", "windefend",
                                     "wmi", "codeintegrity-operational", "bits-client", "applocker", "dns-server-analytic",
                                     "bitlocker", "capi2", "certificateservicesclient-lifecycle-system", "pim")
                     foreach (`$key in `$logsource.Keys) {
