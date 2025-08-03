@@ -18,7 +18,7 @@ https://github.com/user-attachments/assets/ec7e025b-b3cd-4a86-bdd6-5198ffc4db2e
 ### 🔧 Prerequisites   
 - **Windows environment** 
 - **Node.js**
-- **Run `powershell/AutoSetup.ps1` to automate the entire setup process. This script handles all the necessary preparations seamlessly. 
+- **Run `powershell/AutoSetup.ps1` to automate the entire setup process. This script handles all the necessary preparations seamlessly.**
     - Setting OpenAI API Key
         - The script prompts you to enter your OpenAI API key, which is required for LLM-based rule generation.
     - Generating unrelatedLogs.txt
