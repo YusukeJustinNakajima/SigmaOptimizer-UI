@@ -48,7 +48,7 @@ $repo = "Yamato-Security/hayabusa"
 $apiUrl = "https://api.github.com/repos/$repo/releases/latest"
 $zipFile = "hayabusa-latest.zip"
 $extractPath = "hayabusa-latest"
-<#
+
 try {
     $response = Invoke-RestMethod -Uri $apiUrl -Headers @{"Accept"="application/vnd.github.v3+json"}
     
@@ -90,7 +90,7 @@ try {
 } catch {
     Write-Error "Failed to download Hayabusa: $_"
 }
-#>
+
 Write-Host ""
 Write-Host "====== Extracting Benign EVTX Logs ======" -ForegroundColor Yellow
 
