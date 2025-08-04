@@ -52,6 +52,7 @@ node_modules/
 *.ps1~
 
 powershell/hayabusa.exe
+!.env.example
 powershell/rules/generate_rules/*
 powershell/config/unrelatedLogs.txt
 
