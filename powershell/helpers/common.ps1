@@ -4,7 +4,7 @@ param(
 )
 
 if (-not $NoModule) {
-    Import-Module "$PSScriptRoot\..\OpenAI_SigmaModule.psm1" -Force
+    Import-Module "$PSScriptRoot\..\LLM_SigmaModule.psm1" -Force
     Import-Module "$PSScriptRoot\..\SigmaRuleTests.psm1"    -Force
     Import-Module Invoke-ArgFuscator
 }

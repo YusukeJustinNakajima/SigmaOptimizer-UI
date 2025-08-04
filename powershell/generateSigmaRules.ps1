@@ -1,7 +1,12 @@
 # generateSigmaRules.ps1
-# Simple version with Insert-MissingTags for single rule generation
+param(
+    [string]$Provider = $env:AI_PROVIDER,
+    [string]$Model = $env:AI_MODEL
+)
 
 . "$PSScriptRoot\helpers\common.ps1"
+
+Import-Module "$PSScriptRoot\LLM_SigmaModule.psm1" -Force
 
 function Process-SingleSigmaRule {
     param(
@@ -45,16 +50,13 @@ try {
     
     $finalLog = Get-Content -Path $finalLogPath -Raw -ErrorAction Stop
     
-    <#
-    $maxLogSize = 10000
-    if ($finalLog.Length -gt $maxLogSize) {
-        Write-Warning "Log truncated from $($finalLog.Length) to $maxLogSize characters"
-        $finalLog = $finalLog.Substring(0, $maxLogSize)
-    }
-    #>
+    Write-Verbose "Generating Sigma rule with $Provider..."
     
-    Write-Verbose "Generating Sigma rule..."
-    $sigmaOut = New-SigmaRule -evtxLog $finalLog
+    if ($Model) {
+        $sigmaOut = New-SigmaRule -evtxLog $finalLog -Provider $Provider -model $Model
+    } else {
+        $sigmaOut = New-SigmaRule -evtxLog $finalLog -Provider $Provider
+    }
     
     if (-not $sigmaOut) {
         throw "New-SigmaRule returned null or empty result"
@@ -75,6 +77,8 @@ try {
         Success = $true
         RuleText = $ruleText
         RulePath = $rulePath
+        Provider = $Provider
+        Model = if ($Model) { $Model } else { "default" }
     } | ConvertTo-Json -Compress | Write-Output
     
     exit 0
@@ -83,6 +87,7 @@ catch {
     [pscustomobject]@{
         Success = $false
         Error = $_.Exception.Message
+        Provider = $Provider
     } | ConvertTo-Json -Compress | Write-Output
     exit 1
 }

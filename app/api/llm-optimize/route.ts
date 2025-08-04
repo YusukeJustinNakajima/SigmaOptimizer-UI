@@ -1,4 +1,4 @@
-// app/api/llm-optimize/route.ts
+// app/api/llm-optimize/route.ts の修正版
 import { NextRequest, NextResponse } from 'next/server';
 import { exec } from 'child_process';
 import { promisify } from 'util';
@@ -18,6 +18,8 @@ interface OptimizeResponse {
   OptimizedRule: string;
   Message?: string;
   Error?: string;
+  Provider?: string;
+  Model?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -64,16 +66,39 @@ export async function POST(request: NextRequest) {
     const escapedPrompt = prompt.replace(/"/g, '`"').replace(/'/g, "''");
     const escapedRule = rule.replace(/"/g, '`"').replace(/'/g, "''");
     
-    // Build PowerShell command
-    const psCommand = `powershell.exe -ExecutionPolicy Bypass -File "${scriptPath}" -RulePath "${rulePath}" -OptimizationPrompt "${escapedPrompt}" -CurrentRule "${escapedRule}"`;
+    // Get provider and model from environment variables
+    const provider = process.env.AI_PROVIDER
+    const model = process.env.AI_MODEL
+    
+    console.log('Environment variables:');
+    console.log('  AI_PROVIDER:', process.env.AI_PROVIDER);
+    console.log('  AI_MODEL:', process.env.AI_MODEL);
+    console.log('  Using Provider:', provider);
+    console.log('  Using Model:', model);
+    
+    const psCommand = `powershell.exe -ExecutionPolicy Bypass -File "${scriptPath}" ` +
+      `-RulePath "${rulePath}" ` +
+      `-OptimizationPrompt "${escapedPrompt}" ` +
+      `-CurrentRule "${escapedRule}" ` +
+      `-Provider "${provider}" ` +
+      `-Model "${model}"`;
 
     console.log('Executing PowerShell command for LLM optimization...');
+    console.log(`Using AI Provider: ${provider}, Model: ${model}`);
     
-    // Execute PowerShell script
+    // Execute PowerShell script with environment variables
     const { stdout, stderr } = await execAsync(psCommand, {
       maxBuffer: 1024 * 1024 * 10, // 10MB buffer for large rules
       timeout: 180000, // 180 second timeout for API calls
-      windowsHide: true
+      windowsHide: true,
+      env: {
+        ...process.env,
+        AI_PROVIDER: provider,
+        AI_MODEL: model,
+        // API keys
+        OPENAI_APIKEY: process.env.OPENAI_APIKEY || '',
+        CLAUDE_APIKEY: process.env.CLAUDE_APIKEY || ''
+      }
     });
 
     if (stderr) {
@@ -112,46 +137,67 @@ export async function POST(request: NextRequest) {
         {
           Success: false,
           Error: result.Error || 'Optimization failed',
-          Message: result.Message || 'Failed to optimize rule'
+          Message: result.Message || 'Failed to optimize rule',
+          Provider: provider,
+          Model: model
         },
         { status: 500 }
       );
     }
 
-    // Save the optimized rule to the original path (optional - can be removed if not needed)
+    // Save the optimized rule to the original path
     try {
       await fs.writeFile(rulePath, result.OptimizedRule, 'utf-8');
       console.log(`Optimized rule saved to: ${rulePath}`);
     } catch (saveError) {
       console.warn('Failed to save optimized rule to file:', saveError);
-      // Don't fail the request if we can't save - the UI has the optimized rule
     }
 
-    // Return successful response
+    // Return successful response with provider information
     return NextResponse.json({
       Success: true,
       OptimizedRule: result.OptimizedRule,
-      Message: 'Rule optimized successfully'
+      Message: `Rule optimized successfully using ${provider} (${model})`,
+      Provider: provider,
+      Model: model
     });
 
   } catch (error) {
     console.error('LLM optimization error:', error);
     
+    const provider = process.env.AI_PROVIDER || 'Claude';
+    const model = process.env.AI_MODEL || 'claude-sonnet-4-20250514';
+    
     return NextResponse.json(
       {
         Success: false,
         Error: error instanceof Error ? error.message : 'Unknown error occurred',
-        Message: 'Failed to optimize rule'
+        Message: 'Failed to optimize rule',
+        Provider: provider,
+        Model: model
       },
       { status: 500 }
     );
   }
 }
 
-// Optional: Add GET method to check endpoint status
+// GET method to check endpoint status and current configuration
 export async function GET() {
+  const provider = process.env.AI_PROVIDER || 'Not set';
+  const model = process.env.AI_MODEL || 'Not set';
+  
   return NextResponse.json({
     status: 'LLM Optimization API is running',
+    configuration: {
+      provider: provider,
+      model: model,
+      hasOpenAIKey: !!process.env.OPENAI_APIKEY,
+      hasClaudeKey: !!process.env.CLAUDE_APIKEY,
+      env: {
+        AI_PROVIDER: process.env.AI_PROVIDER,
+        AI_MODEL: process.env.AI_MODEL
+      }
+    },
     endpoints: {
       POST: '/api/llm-optimize',
       body: {

@@ -10,12 +10,27 @@ param(
     [string]$CurrentRule,
     
     [Parameter(Mandatory=$false)]
-    [string]$Model = "o3-mini"
+    [string]$Provider = $env:AI_PROVIDER,
+    
+    [Parameter(Mandatory=$false)]
+    [string]$Model = $env:AI_MODEL
 )
 
-# Import OpenAI module
+if ([string]::IsNullOrWhiteSpace($Provider)) {
+    $Provider = "OpenAI"
+}
+
+if ([string]::IsNullOrWhiteSpace($Model)) {
+    switch ($Provider) {
+        "OpenAI" { $Model = "gpt-4.1" }
+        "Claude" { $Model = "claude-sonnet-4-20250514" }
+        default { $Model = "gpt-4.1" }
+    }
+}
+
+# Import LLM module
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-Import-Module "$scriptPath\OpenAI_SigmaModule.psm1" -Force
+Import-Module "$scriptPath\LLM_SigmaModule.psm1" -Force
 
 # Load expected output format
 try {
@@ -28,17 +43,29 @@ catch {
     $script:expected_outputs_for_optimize = ""
 }
 
-
-# Check if API key is available
-if (-not $env:OPENAI_APIKEY) {
-    Write-Error "OPENAI_APIKEY environment variable is not set"
-    $output = @{
-        Success = $false
-        Error = "OpenAI API key not configured"
-        Message = "Please set OPENAI_APIKEY environment variable"
+# Check if API key is available based on provider
+if ($Provider -eq "Claude") {
+    if (-not $env:CLAUDE_APIKEY) {
+        Write-Error "CLAUDE_APIKEY environment variable is not set"
+        $output = @{
+            Success = $false
+            Error = "Claude API key not configured"
+            Message = "Please set CLAUDE_APIKEY environment variable"
+        }
+        $output | ConvertTo-Json -Depth 10
+        exit 1
     }
-    $output | ConvertTo-Json -Depth 10
-    exit 1
+} else {
+    if (-not $env:OPENAI_APIKEY) {
+        Write-Error "OPENAI_APIKEY environment variable is not set"
+        $output = @{
+            Success = $false
+            Error = "OpenAI API key not configured"
+            Message = "Please set OPENAI_APIKEY environment variable"
+        }
+        $output | ConvertTo-Json -Depth 10
+        exit 1
+    }
 }
 
 # Function to optimize Sigma rule with LLM
@@ -46,7 +73,8 @@ function Optimize-SigmaRule {
     param(
         [string]$Rule,
         [string]$Prompt,
-        [string]$ModelName = "o3-mini"
+        [string]$ProviderName = "OpenAI",
+        [string]$ModelName = "gpt-4.1"
     )
     
     # Create the role content for optimization
@@ -95,13 +123,13 @@ Your task is to optimize the **Current Sigma Rule** based on specific requiremen
 **OPTIMIZATION TIPS:**
 
 1. **Temporarily Remove 'filter' Blocks:**
-   For broader threat hunting, consider removing or commenting out existing `filter` (negation) conditions to observe a wider set of relevant and noisy events. This helps identify overlooked patterns, though more false positives will appear.
+   For broader threat hunting, consider removing or commenting out existing filter (negation) conditions to observe a wider set of relevant and noisy events. This helps identify overlooked patterns, though more false positives will appear.
 
 2. **Loosen Selection Criteria with Wildcards/Regex:**
-   For example, change strict conditions such as `Image|endswith: '\\wsmprovhost.exe'` to more flexible ones like `Image|contains: 'wsmprovhost'` to capture binaries with similar names in unusual paths.
+   For example, change strict conditions such as Image|endswith: '\\wsmprovhost.exe' to more flexible ones like Image|contains: 'wsmprovhost' to capture binaries with similar names in unusual paths.
 
 3. **Leverage False Positives for Detection:**
-   Intentionally include scenarios known to cause false positives (as described in the `falsepositives` field) within your detection logic to hunt for suspicious cases that are normally excluded. This can reveal abnormal behavior hidden among legitimate activity.
+   Intentionally include scenarios known to cause false positives (as described in the falsepositives field) within your detection logic to hunt for suspicious cases that are normally excluded. This can reveal abnormal behavior hidden among legitimate activity.
 
 $script:expected_outputs_for_optimize
 "@
@@ -117,15 +145,19 @@ IMPORTANT: Return ONLY the optimized Sigma rule in plain YAML format. Do not inc
 "@
 
     try {
-        # Call OpenAI API using the existing function
-        Write-Host "Calling OpenAI API with model: $ModelName" -ForegroundColor Yellow
+        # Call LLM API using string provider name directly
+        Write-Host "Calling $ProviderName API with model: $ModelName" -ForegroundColor Yellow
 
-        $optimizedRule = Invoke-OpenAIRequest -model $ModelName -roleContent $roleContent -userContent $userContent
+        # Use New-SigmaRule function which accepts string parameters
+        $optimizedRule = New-SigmaRule `
+            -evtxLog $userContent `
+            -Provider $ProviderName `
+            -model $ModelName
         
-        Write-Host "OpenAI API call completed" -ForegroundColor Green
+        Write-Host "$ProviderName API call completed" -ForegroundColor Green
         
         if (-not $optimizedRule) {
-            throw "Failed to get response from OpenAI API"
+            throw "Failed to get response from $ProviderName API"
         }
         
         # Extract YAML content if wrapped in code blocks
@@ -213,9 +245,14 @@ function Test-SigmaRuleStructure {
 # Main execution
 try {
     Write-Host "Starting Sigma rule optimization..." -ForegroundColor Green
+    Write-Host "Using Provider: $Provider with Model: $Model" -ForegroundColor Cyan
     
     # Optimize the rule
-    $optimizedRule = Optimize-SigmaRule -Rule $CurrentRule -Prompt $OptimizationPrompt -ModelName $Model
+    $optimizedRule = Optimize-SigmaRule `
+        -Rule $CurrentRule `
+        -Prompt $OptimizationPrompt `
+        -ProviderName $Provider `
+        -ModelName $Model
     
     if (-not $optimizedRule) {
         throw "Failed to optimize rule"
@@ -238,7 +275,9 @@ try {
         OptimizedRule = $optimizedRule
         RulePath = $RulePath
         TempPath = $tempPath
-        Message = "Rule optimized successfully"
+        Message = "Rule optimized successfully using $Provider ($Model)"
+        Provider = $Provider
+        Model = $Model
     }
     
     # Output as JSON
@@ -250,6 +289,8 @@ catch {
         Error = $_.Exception.Message
         OptimizedRule = $null
         Message = "Failed to optimize rule: $($_.Exception.Message)"
+        Provider = $Provider
+        Model = $Model
     }
     
     $errorOutput | ConvertTo-Json -Depth 10

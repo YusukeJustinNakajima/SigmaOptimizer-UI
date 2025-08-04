@@ -121,6 +121,9 @@ export default function SigmaRuleCreator() {
 
       const res = await fetch("/api/sigma-gen", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({}),
       });
 
@@ -436,7 +439,7 @@ export default function SigmaRuleCreator() {
                     </RadioGroup>
                   </div>
                   <div className="mt-4">
-                  {/*// ログソース選択部分を以下のように置き換え*/}
+
                   <div className="mt-4">
                   <Label className="text-base mb-3 block">Select Log Sources</Label>
                   <div className="space-y-3">
@@ -636,7 +639,6 @@ export default function SigmaRuleCreator() {
                     )}
                   </div>
                   
-                  {/* 選択されたログソースの数を表示 */}
                   <p className="text-xs text-gray-600 mt-3">
                     {logSources.length} log source{logSources.length !== 1 ? 's' : ''} selected
                   </p>
