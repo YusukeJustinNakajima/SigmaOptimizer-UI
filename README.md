@@ -21,6 +21,7 @@ https://github.com/user-attachments/assets/da454235-5ffe-4f06-9c16-20b556ef4792
 - **Run `powershell/AutoSetup.ps1` to automate the entire setup process. This script handles all the necessary preparations seamlessly.**
     - Setting OpenAI API Key
         - The script prompts you to enter your OpenAI API key, which is required for LLM-based rule generation.
+        - **By default, the system uses OpenAI's model, but it also supports Claude. Since Claude is generally more intelligent, I strongly recommend using Claude.**
     - Generating unrelatedLogs.txt
         - The script generates a file named `powershell/config/unrelatedLogs.txt` to store logs that are not related to the Sigma rule generation process.
     - Installing Required PowerShell Modules
