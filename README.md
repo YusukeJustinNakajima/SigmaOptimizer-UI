@@ -4,12 +4,12 @@
 **SigmaOptimizer-UI** is a user-friendly interface built on top of [SigmaOptimizer](https://github.com/YusukeJustinNakajima/SigmaOptimizer), designed to make end-to-end Sigma rule generation and optimization more accessible and intuitive.
 By combining log analysis, rule evaluation, and iterative refinement powered by LLM, it streamlines the entire workflow—enabling seamless creation, testing, and tuning of Sigma rules without the need to directly interact with PowerShell scripts.
 
-✅ **Automated Sigma rule generation based on real-world logs**  
-✅ **Integration with [MITRE Caldera](https://github.com/mitre/caldera) (β version)**  
+✅ **Automated Sigma rule generation based on real-world logs**   
 ✅ **Rule validation with syntax checks (Invoke-SigmaRuleTests)**  
 ✅ **Detection rate measurement using [Hayabusa](https://github.com/Yamato-Security/hayabusa)**  
 ✅ **FP check of created rules using [evtx-baseline](https://github.com/NextronSystems/evtx-baseline)**  
-✅ **Command obfuscation support ([Invoke-ArgFuscator](https://github.com/wietze/Invoke-ArgFuscator)) for robust detection**  
+✅ **Refine the created rule using an LLM, based on the user's instructions.**
+
 
 ## Quick Demo
 https://github.com/user-attachments/assets/da454235-5ffe-4f06-9c16-20b556ef4792
