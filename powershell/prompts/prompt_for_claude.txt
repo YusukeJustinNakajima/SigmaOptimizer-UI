@@ -5,44 +5,75 @@ Generate ONE high-quality Sigma rule in valid YAML format based on the provided 
 
 ## CRITICAL REQUIREMENTS
 
-### 1. FIELD VALIDATION
-- **ONLY** use fields that explicitly appear in the provided logs
-- **NEVER** assume or infer fields not present in the data
-- Common fields to check for: EventID, Channel, Computer, User, ProcessName, CommandLine, ParentProcessName, TargetObject, Details, QueryName, Image, ImageLoaded, TargetFilename, etc.
-- Validate each field exists before including it in the rule
+### 1. FIELD SELECTION PRIORITIES
+HIGH-PRIORITY DETECTION FIELDS (Use these first):
+- EventID, Channel
+- Image, OriginalFileName, Hashes (MD5, SHA256, IMPHASH)
+- CommandLine, ParentCommandLine
+- ProcessName, ParentProcessName
+- TargetObject, TargetFilename
+- QueryName (for DNS events)
+- DestinationPort, DestinationIp, DestinationHostname
+- Registry paths and values
 
-### 2. DETECTION LOGIC
-- Build detection patterns based on actual malicious indicators in the logs
-- Prioritize high-confidence indicators (specific process names, unique command patterns, etc.)
-- Use appropriate selection operators: contains, startswith, endswith, all, 1 of, etc.
-- Consider event correlation when multiple related events indicate malicious activity
+LOW-PRIORITY FIELDS (Avoid for detection logic):
+- Description (often generic/unreliable)
+- Product, Company, FileVersion
+- User, Computer (unless specific user/computer targeting is required)
+- Timestamps (unless time-based correlation needed)
 
-### 3. RULE STRUCTURE
-- title: descriptive title
-- id: UUID
-- status: test/stable/experimental
-- description: clear description
-- author: author name
-- date: YYYY/MM/DD
-- tags: relevant MITRE ATT&CK tags
-- logsource: product, category and service
-- detection: selection criteria and conditions
-- falsepositives: list of potential false positives
-- level: low/medium/high/critical
+NEVER USE:
+- Fields that don't exist in the logs
+- UI/display-only fields
+- Fields with frequently changing or unpredictable values
 
-### 4. QUALITY STANDARDS
-- Ensure proper YAML indentation (2 spaces)
-- Escape special characters correctly: single quotes for strings with colons, backslashes for regex
-- Use field modifiers appropriately: |contains, |startswith, |endswith, |base64offset
-- Include meaningful false positive descriptions
+### 2. DETECTION LOGIC BEST PRACTICES
+- Focus on BEHAVIORAL patterns over metadata
+- Prioritize fields that attackers cannot easily modify: Process execution chains (Image + ParentImage), Network indicators (domains, IPs, ports), Command-line arguments, File/registry modifications
+- Avoid detection based solely on: Description fields (easily spoofed), Product information (unreliable), Generic process names without context
 
-### 5. VALIDATION CHECKLIST
-Before outputting:
-- All fields exist in the provided logs
+### 3. FIELD VALIDATION PROCESS
+Before using any field:
+1. Verify it exists in the provided logs
+2. Assess its reliability for detection (is it attacker-controlled?)
+3. Check if it provides unique detection value
+4. Ensure it won't cause false positives
+
+### 4. RULE STRUCTURE
+title: descriptive title
+id: UUID (format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+status: test/stable/experimental
+description: clear description of what is detected
+author: author name
+date: YYYY/MM/DD
+references: relevant URLs (optional)
+tags: relevant MITRE ATT&CK tags (e.g., attack.t1090)
+logsource:
+  product: windows
+  category: process_creation/network_connection/dns_query/etc.
+  service: sysmon/security/system/etc.
+detection:
+  selection:
+    FieldName: value
+  condition: selection
+falsepositives:
+  - Legitimate use case 1
+  - Legitimate use case 2
+level: low/medium/high/critical
+
+### 5. QUALITY STANDARDS
+- Use proper YAML indentation (2 spaces)
+- Escape special characters: use single quotes for strings with colons
+- Apply field modifiers correctly: |contains, |startswith, |endswith, |base64offset
+- For multiple values use lists with proper YAML format
+
+### 6. PRE-OUTPUT VALIDATION
+- All fields used exist in the provided logs
+- No Description or other metadata fields used for primary detection
+- Detection logic based on behavioral indicators
 - YAML syntax is valid
-- Detection logic matches the observed attack pattern
-- False positives are considered and documented
-- MITRE ATT&CK tags are relevant and accurate
+- Appropriate false positives documented
+- MITRE ATT&CK tags are accurate
 
 ### OUTPUT FORMAT
 Return ONLY the complete Sigma rule in YAML format. No explanations, no markdown code blocks, no additional text.
