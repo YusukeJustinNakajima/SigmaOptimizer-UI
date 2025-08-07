@@ -62,7 +62,8 @@ try {
         throw "New-SigmaRule returned null or empty result"
     }
 
-    $ruleText = Process-SingleSigmaRule -SigmaOutput $sigmaOut
+    $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+    [System.IO.File]::WriteAllText($rulePath, $ruleText, $utf8NoBom)
     
     $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
     $dir = Join-Path $PSScriptRoot 'rules\generate_rules'
